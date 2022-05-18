@@ -44,6 +44,7 @@ export default class User {
                return {authorization: userAuthentication.generateAccessToken(user.id, user.login)};
 
             },
+
          },
 
 
@@ -131,9 +132,11 @@ export default class User {
                }
             },
 
-            deleteAccount: async (parent, {id}, context) => {
+            deleteAccount: async (parent, {}, context) => { 
 
-               checkUserRights.checkId(context, id);
+               checkUserRights.checkUserAuthentication(context);
+
+               const id = context.user.id;
 
                const userInformation = await models.UserInformation.findByPk(id);
 
@@ -145,7 +148,35 @@ export default class User {
                await models.User.destroy({where: {id}});
                
                return {success: true};
-            }
+
+            },
+
+            switchFavoritePhotocard: async (parent, {photocardId}, context) => {
+               
+               checkUserRights.checkUserAuthentication(context);
+
+               const userId = context.user.id;
+
+               const photocard = await models.Photocard.findByPk(photocardId);
+               if (!photocard) throw new Error('PHOTOCARD NOT FOUND');
+   
+               const favoritePhotocard = await models.FavoritePhotocard.findOne({
+                  where: {
+                     userId, 
+                     photocardId
+                  }
+               });
+
+               if (!favoritePhotocard) {
+                  await photocard.createFavoritePhotocard({userId});
+               }  else {
+                  await favoritePhotocard.destroy();
+               }
+   
+               return {success: true};
+
+            },
+
 
          }
       }

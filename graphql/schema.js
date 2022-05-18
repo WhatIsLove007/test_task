@@ -31,9 +31,10 @@ export const typeDefs = gql`
 
   type Mutation {
     signup(input: UserSignupInput, file: Upload): LoginResponse
-    deleteAccount(id: Int!): Response
+    deleteAccount: Response
+    switchFavoritePhotocard(photocardId: Int!): Response
   }
-
+  
 `;
 
 

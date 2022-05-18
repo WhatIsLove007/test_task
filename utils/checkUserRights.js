@@ -2,9 +2,9 @@ import {THROW_ERROR_MESSAGES} from '../config/const.js';
 
 
 
-export const checkId = (context, id) => {
+export const checkUserAuthentication = context => {
 
-   if (context?.user?.id !== id) throw new Error(THROW_ERROR_MESSAGES.FORBIDDEN);
+   if ( !(context?.user?.id) ) throw new Error(THROW_ERROR_MESSAGES.FORBIDDEN);
 
 }
 

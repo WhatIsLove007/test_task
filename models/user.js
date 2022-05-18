@@ -49,6 +49,8 @@ export default class User extends Model {
   static associate(models) {
     this.hasOne(models.UserInformation, {onDelete: 'cascade', foreignKey: 'userId'});
     this.hasOne(models.UserAddress, {onDelete: 'cascade', foreignKey: 'userId'});
+    this.hasMany(models.FavoritePhotocard, {onDelete: 'cascade', foreignKey: "userId"});
+    this.belongsToMany(models.Photocard, {through: models.FavoritePhotocard, foreignKey: 'userId'});
   }
   
 };
