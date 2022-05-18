@@ -1,26 +1,29 @@
+const dotenv = require('dotenv').config();
+
+
 module.exports = {
   "development": {
-    "username": "root",
+    "username": process.env.MYSQL_USERNAME,
     "password": process.env.MYSQL_PASSWORD,
-    "database": "test_task_db",
-    "host": "127.0.0.1",
-    "port": "3307",
+    "database": process.env.MYSQL_DATABASE,
+    "host": process.env.MYSQL_HOST,
+    "port": process.env.MYSQL_PORT,
     "dialect": "mysql"
   },
   "test": {
-    "username": "root",
+    "username": process.env.MYSQL_USERNAME,
     "password": process.env.MYSQL_PASSWORD,
-    "database": "test_task_db",
-    "host": "127.0.0.1",
-    "port": "3307",
+    "database": process.env.MYSQL_DATABASE,
+    "host": process.env.MYSQL_HOST,
+    "port": process.env.MYSQL_PORT,
     "dialect": "mysql"
   },
   "production": {
-    "username": "root",
+    "username": process.env.MYSQL_USERNAME,
     "password": process.env.MYSQL_PASSWORD,
-    "database": "test_task_db",
-    "host": "127.0.0.1",
-    "port": "3307",
+    "database": process.env.MYSQL_DATABASE,
+    "host": process.env.MYSQL_HOST,
+    "port": process.env.MYSQL_PORT,
     "dialect": "mysql"
   }
 }

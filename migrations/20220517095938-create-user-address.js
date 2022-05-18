@@ -10,28 +10,16 @@ module.exports = {
         references: {model: 'Users'},
         onDelete: 'cascade',
       },
-      country: {
-        type: Sequelize.ENUM,
-        values: [
-          'GREAT_BRITAIN',
-          'LATVIA',
-          'LITHUANIA',
-          'MOLDOVA',
-          'GERMANY',
-          'POLAND',
-          'ROMANIA',
-          'USA',
-          'TURKEY',
-          'UKRAINE',
-          'FRANCE',
-        ],
+      countryId: {
+        type: Sequelize.INTEGER,
         allowNull: false,
+        references: {model: 'Countries'},
       },
       city: {
         type: Sequelize.STRING,
         allowNull: false,
       },
-      index: {
+      zipCode: {
         type: Sequelize.STRING,
         allowNull: false,
       },

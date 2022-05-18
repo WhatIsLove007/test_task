@@ -11,28 +11,16 @@ export default class UserAddress extends Model {
         references: {model: 'Users'},
         onDelete: 'cascade',
       },
-      country: {
-        type: DataTypes.ENUM,
-        values: [
-          'GREAT_BRITAIN',
-          'LATVIA',
-          'LITHUANIA',
-          'MOLDOVA',
-          'GERMANY',
-          'POLAND',
-          'ROMANIA',
-          'USA',
-          'TURKEY',
-          'UKRAINE',
-          'FRANCE',
-        ],
+      countryId: {
+        type: DataTypes.INTEGER,
         allowNull: false,
+        references: {model: 'Countries'},
       },
       city: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      index: {
+      zipCode: {
         type: DataTypes.STRING,
         allowNull: false,
       },
@@ -43,11 +31,12 @@ export default class UserAddress extends Model {
       additionalAddress: {
         type: DataTypes.STRING,
       },
-    }, {updatedAt: false, sequelize})
+    }, {timestamps: false, sequelize})
   }
 
   static associate(models) {
     this.belongsTo(models.User, {onDelete: 'cascade', foreignKey: 'userId'});
+    this.belongsTo(models.Country, {foreignKey: 'countryId'});
   }
   
 };

@@ -48,7 +48,7 @@ export default class UserInformation extends Model {
       desiredVacationUntil: {
         type: DataTypes.DATE,
       },
-    }, {updatedAt: false, sequelize})
+    }, {timestamps: false, tableName: 'userinformation', sequelize})
   }
 
   static associate(models) {

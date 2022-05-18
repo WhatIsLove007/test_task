@@ -26,8 +26,8 @@ export default class User extends Model {
       },
       status: {
         type: DataTypes.ENUM,
-        values: ['IN_THE_PROCESS_OF_REGISTRATION', 'ACTIVE', 'BANNED'],
-        defaultValue: 'IN_THE_PROCESS_OF_REGISTRATION',
+        values: ['ACTIVE', 'BANNED'],
+        defaultValue: 'ACTIVE',
         allowNull: false,
       },
       role: {
