@@ -11,7 +11,9 @@ import * as passwordHashing from '../../utils/passwordHashing.js';
 import * as userAuthentication from '../../utils/userAuthentication.js';
 import {USER_STATUSES, USER_ROLES, ERROR_MESSAGES} from '../../config/const.js';
 import * as validateFile from '../../utils/validateFile.js';
-import * as checkUserRights from '../../utils/checkUserRights.js'
+import * as checkUserRights from '../../utils/checkUserRights.js';
+import * as nodemailer from '../../utils/nodemailer.js';
+import * as crypto from '../../utils/crypto.js';
 
 
 
@@ -54,13 +56,13 @@ export default class User {
 
                const { 
                   login, email, password,
-                  repeatingPassword, name, 
-                  surname, gender, birthdate, 
-                  about, countryId, city, zipCode,
-                  address, additionalAddress, 
-                  desiredVacationFrom, desiredVacationUntil 
+                  repeatingPassword, name, surname, 
+                  gender, birthdate, about, countryId, 
+                  city, zipCode, address, additionalAddress, 
+                  desiredVacationFrom, desiredVacationUntil, iAgreeCheckbox
                } = input;
 
+               if (!iAgreeCheckbox) throw new Error(ERROR_MESSAGES.FORBIDDEN);
 
                if (password !== repeatingPassword) throw new Error('Passwords do not match');
                if (!inputDataValidation.validateLogin(login)) throw new Error('Incorrect login');
@@ -121,6 +123,8 @@ export default class User {
                      ...(additionalAddress? {additionalAddress} : {}),
                   }, {transaction});
 
+                  await user.createUserToken({}, {transaction});
+
 
                   await transaction.commit();
                   
@@ -130,6 +134,66 @@ export default class User {
                   console.log(error);
                   transaction.rollback();
                }
+            },
+
+            sendPasswordResetEmail: async (parent, {emailOrLogin}, context) => {
+
+               const user = await models.User.findOne({
+                  where: {
+                     ...(inputDataValidation.validateEmail(emailOrLogin)? {email: emailOrLogin} : 
+                        {login: emailOrLogin}),
+                  },
+               });
+
+               if (!user) return {success: false, emailOrLogin};
+
+               const encryptedToken = crypto.encrypt(`${crypto.generateToken(16)}_${Date.now()}`);
+
+               const url = `${context.req.protocol}://${context.req.get('host')}/password-reset/${encryptedToken}`;
+
+               await models.UserToken.update(
+                  {encryptedPasswordResetToken: encryptedToken}, 
+                  {where: {userId: user.id}}
+               );
+
+               await nodemailer.sendPasswordResetEmail(user.email, url);
+
+               return {success: true, emailOrLogin};
+
+            },
+
+            recoverPassword: async (parent, {token, password, repeatingPassword}) => {
+
+               const userTokenRecord = await models.UserToken.findOne({where: {encryptedPasswordResetToken: token}});
+               if (!userTokenRecord) throw new Error('WRONG TOKEN');
+
+               const user = await userTokenRecord.getUser();
+
+               const transaction = await sequelize.transaction();
+
+               try {
+                  await userTokenRecord.update({encryptedPasswordResetToken: null}, {transaction});
+
+                  const timestamp = parseInt(crypto.decrypt(token).split('_')[1]);
+
+                  if (Date.now() - timestamp > 259200000) {  // 3 days
+                     throw new Error('TOKEN EXPIRED');
+                  }
+
+                  if (!inputDataValidation.validatePassword(password)) throw new Error('Incorrect password');
+                  if (password !== repeatingPassword) throw new Error('Passwords do not match');
+
+                  await user.update({passwordHash: await passwordHashing.hash(password)}, {transaction});
+
+                  await transaction.commit();
+
+                  return {authorization: userAuthentication.generateAccessToken(user.id, user.login)};
+
+               } catch (error) {
+                  await transaction.rollback();
+                  throw new Error(error);
+               }
+
             },
 
             deleteAccount: async (parent, {}, context) => { 
@@ -195,6 +259,13 @@ export default class User {
             shopId: Int
          }
 
+         type SendPasswordResetEmail {
+            emailOrLogin: String! 
+            success: Boolean!
+          }
+
+          
+
          enum Status {
             ${USER_STATUSES.ACTIVE}
             ${USER_STATUSES.BANNED}
@@ -223,6 +294,7 @@ export default class User {
             additionalAddress: String
             desiredVacationFrom: String
             desiredVacationUntil: String
+            iAgreeCheckbox: Boolean!
          }
 
          input UserSigninInput {

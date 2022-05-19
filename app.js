@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv/config';
 import { ApolloServer } from 'apollo-server-express';
 import {graphqlUploadExpress} from 'graphql-upload';
+import path from 'path';
 
 import {typeDefs, resolvers, context} from './graphql/schema.js';
 
@@ -21,6 +22,10 @@ startApolloServer();
 
 
 app.use(express.json());
+
+
+app.use('/storage/files/photocards', express.static(path.join(__dirname, '/uploads/photocards/')));
+
 
   
 app.listen(PORT, error => error? console.log(error) : console.log(`Server has been started on PORT ${PORT}...`));
