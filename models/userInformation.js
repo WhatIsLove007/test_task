@@ -39,9 +39,6 @@ export default class UserInformation extends Model {
       profileHeader: {
         type: DataTypes.STRING,
       },
-      like: {
-        type: DataTypes.STRING,
-      },
       desiredVacationFrom: {
         type: DataTypes.DATE,
       },

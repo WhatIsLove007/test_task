@@ -36,7 +36,7 @@ export default class UserAddress extends Model {
 
   static associate(models) {
     this.belongsTo(models.User, {onDelete: 'cascade', foreignKey: 'userId'});
-    this.belongsTo(models.Country, {foreignKey: 'countryId'});
+    this.belongsTo(models.Country, {as: 'country', foreignKey: 'countryId'});
   }
   
 };

@@ -23,9 +23,14 @@ export default class User {
       return {
          Upload: GraphQLUpload,
 
+         UserProfile: {
+            userInformation: user => user.getUserInformation(),
+            userAddress: user => user.getUserAddress({include: 'country'}),
+            userPreferences: user => user.getUserPreferences(),
+         },
 
          Query: {
-
+            
             signin: async (parent, {input}) => {
                
                const {emailOrLogin, password} = input;
@@ -44,6 +49,49 @@ export default class User {
                }
 
                return {authorization: userAuthentication.generateAccessToken(user.id, user.login)};
+
+            },
+
+            getUserProfile: async (parent, {photocardsLimit, photocardsOffset}, context) => {
+
+               checkUserRights.checkUserAuthentication(context);
+
+               const user = context.user;
+
+               const userInformation = await user.getUserInformation();
+               const userPreferences = await user.getUserPreferences();
+
+               let profileCompleted = 0;
+
+               if (userInformation.avatar) profileCompleted += 25;
+               if (userInformation.profileHeader) profileCompleted += 25;
+               if (userInformation.about) profileCompleted += 25;
+               if (userPreferences.length) profileCompleted += 25;
+
+               user.profileCompleted = profileCompleted;
+
+               const url = context.req.protocol + '://' + context.req.get('host');
+
+               const photocards = await models.Photocard.findAll({
+                  ...(photocardsLimit? {limit: photocardsLimit} : {limit: 10}),
+                  ...(photocardsOffset? {offset: photocardsOffset} : {offset: 0}),
+               });
+
+               for (const photocard of photocards) {
+               
+                  const favoritePhotocard = await photocard.getFavoritePhotocards({
+                     where: {userId: user.id},
+                  });
+                  
+                  photocard.isFavoritePhotocard = favoritePhotocard.length? true : false;
+
+                  photocard.urlPath = `${url}/storage/files/photocards/${photocard.name}`;
+               
+               }
+
+               user.photocards = photocards;
+
+               return user;
 
             },
 
@@ -215,6 +263,86 @@ export default class User {
 
             },
 
+            editUserProfile: async (parent, {input}, context) => {
+
+               checkUserRights.checkUserAuthentication(context);
+
+               const {profileHeader, name, surname, birthdate, countryId, address, about} = input;
+
+               if (!name) throw new Error('NO NAME');
+               if (!surname) throw new Error('NO SURNAME');
+               if (!birthdate) throw new Error('NO BIRTHDATE');
+               if (!countryId) throw new Error('NO COUNTRY');
+               if (!address) throw new Error('NO ADDRESS');
+
+
+               const userInformation = await context.user.getUserInformation();
+               const userAddress = await context.user.getUserAddress();
+
+               const transaction = await sequelize.transaction();
+
+               try {
+                  await userInformation.update({
+                     ...(profileHeader? {profileHeader} : {profileHeader: null}),
+                     name,
+                     surname,
+                     birthdate,
+                     ...(about? {about} : {about: null}),
+                  }, {transaction});
+
+                  await userAddress.update({
+                     countryId,
+                     address,
+                  }, {transaction});
+
+                  await transaction.commit();
+
+                  return {success: true};
+   
+               } catch (error) {
+                  await transaction.rollback;
+                  throw new Error(error);
+               }
+
+            },
+
+            addUserAvatar: async (parent, {file}, context) => {
+
+               checkUserRights.checkUserAuthentication(context);
+
+               const transaction = await sequelize.transaction();
+
+               const userInformation = await context.user.getUserInformation();
+
+               try {
+                  
+                  validateFile.isImage(await file);
+
+                  const { createReadStream, filename, mimetype, encoding } = await file;
+
+                  const stream = createReadStream();
+
+                  const avatarName = `${context.user.id}.jpg`;
+                  const avatarPath = path.join(__dirname, '../../uploads/user/avatars/');
+
+                  const out = fs.createWriteStream(avatarPath + avatarName);
+                  stream.pipe(out);
+
+                  await finished(out);
+
+                  await userInformation.update({avatar: avatarName});
+
+                  await transaction.commit();
+
+                  return {success: true};
+
+               } catch (error) {
+                  await transaction.rollback();
+                  throw new Error(error);
+               }
+
+            },
+
             switchFavoritePhotocard: async (parent, {photocardId}, context) => {
                
                checkUserRights.checkUserAuthentication(context);
@@ -241,6 +369,22 @@ export default class User {
 
             },
 
+            switchUserPreference: async (parent, {preferenceName}, context) => {
+
+               checkUserRights.checkUserAuthentication(context);
+
+               const user = context.user;
+               const userPreferences = await user.getUserPreferences({where: {name: preferenceName}});
+
+               if (!userPreferences.length) {
+                  await user.createUserPreference({name: preferenceName});
+               } else {
+                  await userPreferences[0].destroy();
+               }
+
+               return {success: true};
+
+            },
 
          }
       }
@@ -260,10 +404,17 @@ export default class User {
          }
 
          type SendPasswordResetEmail {
-            emailOrLogin: String! 
+            emailOrLogin: String!
             success: Boolean!
-          }
+         }
 
+         type UserProfile {
+            profileCompleted: Int
+            userInformation: UserInformation
+            userAddress: UserAddress
+            photocards: [Photocard]
+            userPreferences: [UserPreference]
+         }
           
 
          enum Status {
@@ -300,6 +451,16 @@ export default class User {
          input UserSigninInput {
             emailOrLogin: String!
             password: String!
+         }
+
+         input UserProfileEditing {
+            profileHeader: String!
+            name: String!
+            surname: String!
+            birthdate: String!
+            countryId: String!                      # there is a question!!!
+            address: String!
+            about: String!
          }
       `
    }

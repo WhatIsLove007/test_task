@@ -1,28 +1,26 @@
 import { Model } from 'sequelize';
 
-export default class Country extends Model {
+export default class UserPreference extends Model {
   
   static init = (sequelize, DataTypes) => {
     return super.init({
-      id: {
+      userId: {
         type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
         allowNull: false,
+        primaryKey: true,
+        references: {model: 'Users'},
+        onDelete: 'cascade',
       },
       name: {
         type: DataTypes.STRING,
-        allowNull: false,
-      },
-      iso: {
-        type: DataTypes.STRING,
+        primaryKey: true,
         allowNull: false,
       },
     }, {timestamps: false, sequelize})
   }
 
   static associate(models) {
-    this.hasMany(models.UserAddress, {as: 'country', foreignKey: 'countryId'});
+    this.belongsTo(models.User, {onDelete: 'cascade', foreignKey: 'userId'});
   }
   
 };

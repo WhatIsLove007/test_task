@@ -51,6 +51,7 @@ export default class User extends Model {
     this.hasOne(models.UserAddress, {onDelete: 'cascade', foreignKey: 'userId'});
     this.hasOne(models.UserToken, {onDelete: 'cascade', foreignKey: 'userId'});
     this.hasMany(models.FavoritePhotocard, {onDelete: 'cascade', foreignKey: "userId"});
+    this.hasMany(models.UserPreference, {onDelete: 'cascade', foreignKey: "userId"});
     this.belongsToMany(models.Photocard, {through: models.FavoritePhotocard, foreignKey: 'userId'});
   }
   

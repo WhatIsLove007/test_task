@@ -38,9 +38,6 @@ module.exports = {
       profileHeader: {
         type: Sequelize.STRING,
       },
-      like: {
-        type: Sequelize.STRING,
-      },
       desiredVacationFrom: {
         type: Sequelize.DATE,
       },
