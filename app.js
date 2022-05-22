@@ -25,6 +25,7 @@ app.use(express.json());
 
 
 app.use('/storage/files/photocards', express.static(path.join(__dirname, '/uploads/photocards/')));
+app.use('/storage/files/user/avatars', express.static(path.join(__dirname, '/uploads/user/avatars')));
 
 
   

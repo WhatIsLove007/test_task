@@ -5,7 +5,7 @@ import * as checkUserRights from '../../utils/checkUserRights.js'
 
 
 
-export default class User {
+export default class Photocard {
 
    static typeDefs() {
       return gql`

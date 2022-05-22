@@ -1,5 +1,5 @@
 import {gql} from 'apollo-server-express';
-import { sequelize } from '../../models/index.js';
+import { Sequelize, sequelize } from '../../models/index.js';
 import {GraphQLUpload} from 'graphql-upload';
 import fs from 'fs';
 import { finished } from 'stream/promises';
@@ -9,7 +9,7 @@ import models from '../../models';
 import * as inputDataValidation from '../../utils/inputDataValidation.js';
 import * as passwordHashing from '../../utils/passwordHashing.js';
 import * as userAuthentication from '../../utils/userAuthentication.js';
-import {USER_STATUSES, USER_ROLES, ERROR_MESSAGES} from '../../config/const.js';
+import {USER_STATUSES, USER_ROLES, ERROR_MESSAGES, ORDER_STATUSES} from '../../config/const.js';
 import * as validateFile from '../../utils/validateFile.js';
 import * as checkUserRights from '../../utils/checkUserRights.js';
 import * as nodemailer from '../../utils/nodemailer.js';
@@ -386,6 +386,53 @@ export default class User {
 
             },
 
+            bookTour: async (parent, {input}) => {
+
+               const {fullName, phone, date, tourId} = input;
+
+               const tour = await models.Tour.findByPk(tourId, {include: models.Shop});
+               if (!tour) throw new Error(ERROR_MESSAGES.TOUR_NOT_FOUND);
+
+               const order = await models.Order.create({
+                  shopId: tour.shopId,
+                  shopName: tour.Shop.name,
+                  clientFullName: fullName,
+                  clientPhone: phone,
+                  price: tour.price,
+                  tourDate: date,
+               });
+
+               return {success: true};
+
+            },
+
+            acceptClientOrder: async (parent, {orderId}, context) => {
+
+               checkUserRights.checkRole(context, USER_ROLES.MANAGER);
+
+               const manager = context.user;
+
+               const order = await models.Order.findByPk(orderId);
+               if (!order) throw new Error('ORDER NOT FOUND');
+
+               if (manager.shopId !== order.shopId) throw new Error('IS NOT ALLOWED');
+
+               const userInformation = await manager.getUserInformation({
+                  attributes: [
+                     [Sequelize.fn('CONCAT', Sequelize.col('surname'), ' ', Sequelize.col('name')), 'managerFullName'],
+                  ],
+                  raw: true,
+               });
+
+               await order.update({
+                  managerId: manager.id,
+                  managerFullName: userInformation.managerFullName,
+                  status: ORDER_STATUSES.NEW,
+               });
+
+               return {success: true};
+            }
+
          }
       }
    }
@@ -461,6 +508,13 @@ export default class User {
             countryId: String!                      # there is a question!!!
             address: String!
             about: String!
+         }
+
+         input BookTourInput {
+            fullName: String!
+            phone: String!
+            date: String!
+            tourId: Int!
          }
       `
    }

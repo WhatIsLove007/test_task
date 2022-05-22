@@ -38,6 +38,7 @@ export default class User extends Model {
       },
       shopId: {
         type: DataTypes.INTEGER,
+        references: {model: 'Shops'},
       },
       createdAt: {
         type: DataTypes.DATE,
@@ -50,8 +51,11 @@ export default class User extends Model {
     this.hasOne(models.UserInformation, {onDelete: 'cascade', foreignKey: 'userId'});
     this.hasOne(models.UserAddress, {onDelete: 'cascade', foreignKey: 'userId'});
     this.hasOne(models.UserToken, {onDelete: 'cascade', foreignKey: 'userId'});
+    this.hasOne(models.Order, {foreignKey: 'managerId'});
     this.hasMany(models.FavoritePhotocard, {onDelete: 'cascade', foreignKey: "userId"});
     this.hasMany(models.UserPreference, {onDelete: 'cascade', foreignKey: "userId"});
+    this.hasMany(models.Review, {onDelete: 'cascade', foreignKey: "userId"});
+    this.belongsTo(models.Shop, {foreignKey: 'shopId'});
     this.belongsToMany(models.Photocard, {through: models.FavoritePhotocard, foreignKey: 'userId'});
   }
   

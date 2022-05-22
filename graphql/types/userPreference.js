@@ -3,7 +3,7 @@ import {gql} from 'apollo-server-express';
 
 
 
-export default class User {
+export default class UserPreference {
 
    static typeDefs() {
       return gql`

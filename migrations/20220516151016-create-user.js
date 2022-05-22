@@ -37,6 +37,7 @@ module.exports = {
       },
       shopId: {
         type: Sequelize.INTEGER,
+        references: {model: 'Shops'},
       },
       createdAt: {
         type: Sequelize.DATE,

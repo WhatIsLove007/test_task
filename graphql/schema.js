@@ -7,6 +7,10 @@ import UserAddress from './types/userAddress.js';
 import UserPreference from './types/userPreference';
 import Photocard from './types/photocard';
 import Country from './types/country.js';
+import Order from './types/order.js';
+import Review from './types/review.js';
+import Discount from './types/discount.js';
+import Tour from './types/tour.js';
 import * as userAuthentication from '../utils/userAuthentication.js';
 import { USER_STATUSES } from '../config/const.js';
 
@@ -20,6 +24,9 @@ export const typeDefs = gql`
   ${UserPreference.typeDefs()}
   ${Photocard.typeDefs()}
   ${Country.typeDefs()}
+  ${Order.typeDefs()}
+  ${Review.typeDefs()}
+  ${Tour.typeDefs()}
 
   type LoginResponse {
     authorization: String!
@@ -35,6 +42,8 @@ export const typeDefs = gql`
   type Query {
     signin(input: UserSigninInput): LoginResponse
     getUserProfile(photocardsLimit: Int, photocardsOffset: Int): UserProfile
+    getOrdersWithAdditionalData(input: OrderFilterInput!): OrdersWithAdditionalData
+    getTourBookingPage: TourBookingPage
   }
 
 
@@ -47,6 +56,10 @@ export const typeDefs = gql`
     addUserAvatar(file: Upload): Response
     switchFavoritePhotocard(photocardId: Int!): Response
     switchUserPreference(preferenceName: String!): Response
+    bookTour(input: BookTourInput): Response
+    acceptClientOrder(orderId: Int!): Response
+    addReview(tourId: Int!, assessment: Int!, text: String!): Response
+    setDiscountForSubscribers(email: String!): Response
   }
   
 `;
@@ -55,6 +68,10 @@ export const typeDefs = gql`
 function combineResolvers() {
   return _.merge(
     User.resolver(),
+    Order.resolver(),
+    Review.resolver(),
+    Discount.resolver(),
+    Tour.resolver(),
   )
 }
 
