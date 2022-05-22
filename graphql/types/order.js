@@ -67,8 +67,8 @@ export default class Order {
                checkUserRights.checkRole(context, USER_ROLES.MANAGER);
 
                const {
-                  limit, offset, dateFrom, dateUntil, manager, 
-                  shop, client, priceFrom, priceTo, paid, status,
+                  limit, offset, dateFrom, dateUntil, manager, shop,
+                  client, priceFrom, priceTo, paid, status, searchKey
 
                } = input;
 
@@ -86,6 +86,12 @@ export default class Order {
                      },
                      ...(paid? {paid}: {}),
                      ...(status? {status}: {}),
+                     ...(searchKey? {[Op.or]: [
+                        {managerFullName: {[Op.like]: `%${searchKey}%`}},
+                        {shopName: {[Op.like]: `%${searchKey}%`}},
+                        {clientFullName: {[Op.like]: `%${searchKey}%`}},
+                        {price: {[Op.like]: `%${searchKey}%`}},
+                     ]} : {}),
                   },
                });
 
@@ -145,6 +151,7 @@ export default class Order {
          priceTo: Int
          paid: Boolean
          status: OrderStatus
+         searchKey: String
       }
 
       `

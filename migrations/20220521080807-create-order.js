@@ -59,7 +59,7 @@ module.exports = {
         type: Sequelize.DATE,
         allowNull: false,
       },
-    });
+    }, {initialAutoIncrement: 1000000});
   },
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('Orders');

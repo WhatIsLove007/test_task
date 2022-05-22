@@ -14,7 +14,6 @@ export default class Photocard {
          id: Int
          name: String
          urlPath: String
-         isFavoritePhotocard: Boolean
       }
 
       `

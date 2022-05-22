@@ -23,6 +23,7 @@ export default class FavoritePhotocard extends Model {
 
   static associate(models) {
     this.belongsTo(models.User, {onDelete: 'cascade', foreignKey: 'userId'});
+    this.belongsTo(models.Photocard, {onDelete: 'cascade', foreignKey: 'photocardId'});
   }
   
 };

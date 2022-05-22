@@ -78,18 +78,20 @@ export default class User {
                });
 
                for (const photocard of photocards) {
-               
-                  const favoritePhotocard = await photocard.getFavoritePhotocards({
-                     where: {userId: user.id},
-                  });
-                  
-                  photocard.isFavoritePhotocard = favoritePhotocard.length? true : false;
-
                   photocard.urlPath = `${url}/storage/files/photocards/${photocard.name}`;
-               
                }
 
                user.photocards = photocards;
+
+               const favoritePhotocards = await user.getFavoritePhotocards();
+               
+               user.favoritePhotocards = [];
+               for (const favoritePhotocard of favoritePhotocards) {
+               
+                  const photocard = await favoritePhotocard.getPhotocard();
+                  photocard.urlPath = `${url}/storage/files/photocards/${photocard.name}`;
+                  user.favoritePhotocards.push(photocard);
+               }
 
                return user;
 
@@ -460,6 +462,7 @@ export default class User {
             userInformation: UserInformation
             userAddress: UserAddress
             photocards: [Photocard]
+            favoritePhotocards: [Photocard]
             userPreferences: [UserPreference]
          }
           
