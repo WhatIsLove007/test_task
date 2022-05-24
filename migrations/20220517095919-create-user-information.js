@@ -16,7 +16,6 @@ module.exports = {
       },
       surname: {
         type: Sequelize.STRING,
-        allowNull: false,
       },
       gender: {
         type: Sequelize.ENUM,
@@ -24,7 +23,6 @@ module.exports = {
       },
       birthdate: {
         type: Sequelize.DATE,
-        allowNull: false,
       },
       about: {
         type: Sequelize.TEXT,

@@ -13,20 +13,16 @@ export default class UserAddress extends Model {
       },
       countryId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
         references: {model: 'Countries'},
       },
       city: {
         type: DataTypes.STRING,
-        allowNull: false,
       },
       zipCode: {
         type: DataTypes.STRING,
-        allowNull: false,
       },
       address: {
         type: DataTypes.STRING,
-        allowNull: false,
       },
       additionalAddress: {
         type: DataTypes.STRING,

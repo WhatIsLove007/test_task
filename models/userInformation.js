@@ -17,7 +17,6 @@ export default class UserInformation extends Model {
       },
       surname: {
         type: DataTypes.STRING,
-        allowNull: false,
       },
       gender: {
         type: DataTypes.ENUM,
@@ -25,7 +24,6 @@ export default class UserInformation extends Model {
       },
       birthdate: {
         type: DataTypes.DATE,
-        allowNull: false,
       },
       about: {
         type: DataTypes.TEXT,

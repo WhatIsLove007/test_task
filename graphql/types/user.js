@@ -93,6 +93,11 @@ export default class User {
                   user.favoritePhotocards.push(photocard);
                }
 
+               if (userInformation.avatar) {
+                  user.userAvatarUrl = `${url}/storage/files/user/avatars/${userInformation.avatar}`;
+               }
+
+
                return user;
 
             },
@@ -459,6 +464,7 @@ export default class User {
 
          type UserProfile {
             profileCompleted: Int
+            userAvatarUrl: String
             userInformation: UserInformation
             userAddress: UserAddress
             photocards: [Photocard]

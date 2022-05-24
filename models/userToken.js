@@ -15,6 +15,12 @@ export default class UserToken extends Model {
         type: DataTypes.STRING,
         unique: true,
       },
+      hashedGoogleId: {
+        type: DataTypes.STRING,
+      },
+      hashedFacebookId: {
+        type: DataTypes.STRING,
+      },
     }, {timestamps: false, sequelize})
   }
 

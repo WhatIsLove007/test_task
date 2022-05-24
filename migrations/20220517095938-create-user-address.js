@@ -12,20 +12,16 @@ module.exports = {
       },
       countryId: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         references: {model: 'Countries'},
       },
       city: {
         type: Sequelize.STRING,
-        allowNull: false,
       },
       zipCode: {
         type: Sequelize.STRING,
-        allowNull: false,
       },
       address: {
         type: Sequelize.STRING,
-        allowNull: false,
       },
       additionalAddress: {
         type: Sequelize.STRING,

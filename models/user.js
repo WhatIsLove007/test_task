@@ -22,7 +22,6 @@ export default class User extends Model {
       },
       passwordHash: {
         type: DataTypes.STRING,
-        allowNull: false,
       },
       status: {
         type: DataTypes.ENUM,
