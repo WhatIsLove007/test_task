@@ -36,6 +36,7 @@ export const typeDefs = gql`
     success: Boolean!
   }
 
+
   scalar Upload
 
 
@@ -44,6 +45,7 @@ export const typeDefs = gql`
     getUserProfile(photocardsLimit: Int, photocardsOffset: Int): UserProfile
     getOrdersWithAdditionalData(input: OrderFilterInput!): OrdersWithAdditionalData
     getTourBookingPage: TourBookingPage
+    getCountries: [Country]
   }
 
 
@@ -52,10 +54,10 @@ export const typeDefs = gql`
     sendPasswordResetEmail(emailOrLogin: String!): SendPasswordResetEmail
     recoverPassword(token: String!, password: String!, repeatingPassword: String!): LoginResponse!
     deleteAccount: Response
-    editUserProfile(input: UserProfileEditing): Response
+    editUserProfile(input: UserProfileEditingInput): UserProfileEditing
     addUserAvatar(file: Upload): Response
-    switchFavoritePhotocard(photocardId: Int!): Response
-    switchUserPreference(preferenceName: String!): Response
+    switchFavoritePhotocard(photocardId: Int!): SwitchFavoritePhotocard
+    switchUserPreference(preferenceName: String!): SwitchUserPreference
     bookTour(input: BookTourInput): Response
     acceptClientOrder(orderId: Int!): Response
     addReview(tourId: Int!, assessment: Int!, text: String!): Response
@@ -72,6 +74,7 @@ function combineResolvers() {
     Review.resolver(),
     Discount.resolver(),
     Tour.resolver(),
+    Country.resolver(),
   )
 }
 

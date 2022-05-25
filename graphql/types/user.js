@@ -10,10 +10,10 @@ import * as inputDataValidation from '../../utils/inputDataValidation.js';
 import * as passwordHashing from '../../utils/passwordHashing.js';
 import * as userAuthentication from '../../utils/userAuthentication.js';
 import {USER_STATUSES, USER_ROLES, ERROR_MESSAGES, ORDER_STATUSES} from '../../config/const.js';
-import * as validateFile from '../../utils/validateFile.js';
 import * as checkUserRights from '../../utils/checkUserRights.js';
 import * as nodemailer from '../../utils/nodemailer.js';
 import * as crypto from '../../utils/crypto.js';
+import { isDate } from 'util/types';
 
 
 
@@ -117,6 +117,10 @@ export default class User {
                   desiredVacationFrom, desiredVacationUntil, iAgreeCheckbox
                } = input;
 
+               if (new Date(birthdate) < new Date(1900, 0, 2) || new Date(birthdate) > new Date()) {
+                  throw new Error('INCORRECT DATE')
+               }
+
                if (!iAgreeCheckbox) throw new Error(ERROR_MESSAGES.FORBIDDEN);
 
                if (password !== repeatingPassword) throw new Error('Passwords do not match');
@@ -145,10 +149,11 @@ export default class User {
 
                   let avatarName;
                   if (file) {
-                     validateFile.isImage(await file);
                      const avatarPath = path.join(__dirname, '../../uploads/user/avatars/');
-
+                     
                      const { createReadStream, filename, mimetype, encoding } = await file;
+                     
+                     inputDataValidation.isImage(mimetype);
 
                      const stream = createReadStream();
 
@@ -186,8 +191,8 @@ export default class User {
                   return {authorization: userAuthentication.generateAccessToken(user.id, user.login)};
    
                } catch (error) {
-                  console.log(error);
                   transaction.rollback();
+                  throw new Error(error);
                }
             },
 
@@ -276,12 +281,14 @@ export default class User {
 
                const {profileHeader, name, surname, birthdate, countryId, address, about} = input;
 
-               if (!name) throw new Error('NO NAME');
-               if (!surname) throw new Error('NO SURNAME');
-               if (!birthdate) throw new Error('NO BIRTHDATE');
-               if (!countryId) throw new Error('NO COUNTRY');
-               if (!address) throw new Error('NO ADDRESS');
+               inputDataValidation.checkFilledFields([name, countryId, address]);
 
+               if (new Date(birthdate) < new Date(1900, 0, 2) || new Date(birthdate) > new Date()) {
+                  throw new Error('INCORRECT DATE')
+               }
+
+               const country = await models.Country.findByPk(countryId);
+               if (!country) throw new Error(ERROR_MESSAGES.COUNTRY_NOT_FOUND);
 
                const userInformation = await context.user.getUserInformation();
                const userAddress = await context.user.getUserAddress();
@@ -292,9 +299,9 @@ export default class User {
                   await userInformation.update({
                      ...(profileHeader? {profileHeader} : {profileHeader: null}),
                      name,
-                     surname,
-                     birthdate,
-                     ...(about? {about} : {about: null}),
+                     ...(surname? {surname} : {}),
+                     ...(birthdate? {birthdate} : {}),
+                     ...(about? {about} : {}),
                   }, {transaction});
 
                   await userAddress.update({
@@ -304,7 +311,7 @@ export default class User {
 
                   await transaction.commit();
 
-                  return {success: true};
+                  return input;
    
                } catch (error) {
                   await transaction.rollback;
@@ -323,9 +330,9 @@ export default class User {
 
                try {
                   
-                  validateFile.isImage(await file);
-
                   const { createReadStream, filename, mimetype, encoding } = await file;
+                  
+                  inputDataValidation.isImage(mimetype);
 
                   const stream = createReadStream();
 
@@ -360,19 +367,26 @@ export default class User {
                if (!photocard) throw new Error('PHOTOCARD NOT FOUND');
    
                const favoritePhotocard = await models.FavoritePhotocard.findOne({
-                  where: {
-                     userId, 
-                     photocardId
-                  }
+                  where: {userId, photocardId},
                });
+
+               let action;
 
                if (!favoritePhotocard) {
                   await photocard.createFavoritePhotocard({userId});
-               }  else {
+                  action = 'ADDED';
+
+               } else {
                   await favoritePhotocard.destroy();
+                  action = 'DELETED';
+
                }
-   
-               return {success: true};
+
+               const url = context.req.protocol + '://' + context.req.get('host');
+               photocard.urlPath = `${url}/storage/files/photocards/${photocard.name}`;
+
+               return {photocard, action};
+
 
             },
 
@@ -384,12 +398,12 @@ export default class User {
                const userPreferences = await user.getUserPreferences({where: {name: preferenceName}});
 
                if (!userPreferences.length) {
-                  await user.createUserPreference({name: preferenceName});
+                  const userPreference = await user.createUserPreference({name: preferenceName});
+                  return {userPreference: userPreference, action: 'ADDED'};
                } else {
-                  await userPreferences[0].destroy();
+                  return {userPreference: await userPreferences[0].destroy(), action: 'DELETED'};
                }
 
-               return {success: true};
 
             },
 
@@ -471,7 +485,27 @@ export default class User {
             favoritePhotocards: [Photocard]
             userPreferences: [UserPreference]
          }
+
+         type UserProfileEditing {
+            profileHeader: String
+            name: String
+            surname: String
+            birthdate: String
+            countryId: Int
+            address: String
+            about: String
+         }
+
           
+         type SwitchFavoritePhotocard {
+            photocard: Photocard
+            action: Action
+         }
+         
+         type SwitchUserPreference {
+            userPreference: UserPreference
+            action: Action
+         }
 
          enum Status {
             ${USER_STATUSES.ACTIVE}
@@ -481,6 +515,11 @@ export default class User {
          enum Role {
             ${USER_ROLES.CLIENT}
             ${USER_ROLES.MANAGER}
+         }
+
+         enum Action {
+            ADDED
+            DELETED
          }
 
 
@@ -509,14 +548,14 @@ export default class User {
             password: String!
          }
 
-         input UserProfileEditing {
-            profileHeader: String!
+         input UserProfileEditingInput {
+            profileHeader: String
             name: String!
-            surname: String!
+            surname: String
             birthdate: String!
-            countryId: String!                      # there is a question!!!
+            countryId: Int!
             address: String!
-            about: String!
+            about: String
          }
 
          input BookTourInput {

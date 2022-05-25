@@ -14,11 +14,17 @@ module.exports = {
         type: Sequelize.STRING,
         unique: true,
       },
-      hashedGoogleId: {
+      googleId: {
         type: Sequelize.STRING,
+        unique: true,
       },
-      hashedFacebookId: {
+      facebookId: {
         type: Sequelize.STRING,
+        unique: true,
+      },
+      linkedinId: {
+        type: DataTypes.STRING,
+        unique: true,
       },
     });
   },

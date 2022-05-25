@@ -6,7 +6,7 @@ import { AUTHORIZATION_ACCESS_SECRET_KEY } from '../config/const.js';
 
 
 export const generateAccessToken = (id, login) => {
-   return `Bearer ${jwt.sign({id, login}, AUTHORIZATION_ACCESS_SECRET_KEY, {expiresIn: '30d'})}`;
+   return jwt.sign({id, login}, AUTHORIZATION_ACCESS_SECRET_KEY, {expiresIn: '30d'});
 };
 
 

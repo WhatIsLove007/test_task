@@ -23,10 +23,7 @@ export default class Order {
                   },
                });
 
-               const managersInOrders = [];
-               for (const manager of distinctManagersInOrders) managersInOrders.push(manager.managerFullName);
-
-               return managersInOrders;
+               return distinctManagersInOrders.map(manager => manager.managerFullName);
             },
             
             shopsInOrders: async () => {
@@ -36,10 +33,7 @@ export default class Order {
                   ],
                });
       
-               const shopsInOrders = [];
-               for (const shop of distinctShopsInOrders) shopsInOrders.push(shop.shopName);
-
-               return shopsInOrders;
+               return distinctShopsInOrders.map(shop => shop.shopName);
             },
 
             clientsInOrders: async () => {
@@ -49,10 +43,8 @@ export default class Order {
                   ],
                });
                
-               const clientsInOrders = [];
-               for (const client of distinctClientsInOrders) clientsInOrders.push(client.clientFullName);
+               return distinctClientsInOrders.map(client => client.clientFullName);
                
-               return clientsInOrders;
             },
             
             totalOrders: () => models.Order.count(),
@@ -92,6 +84,10 @@ export default class Order {
                         {clientFullName: {[Op.like]: `%${searchKey}%`}},
                         {price: {[Op.like]: `%${searchKey}%`}},
                      ]} : {}),
+                     createdAt: {
+                        ...(dateFrom? {[Op.gte]: dateFrom} : {}),
+                        ...(dateUntil? {[Op.lte]: dateUntil} : {[Op.lte]: new Date()}),
+                     }
                   },
                });
 

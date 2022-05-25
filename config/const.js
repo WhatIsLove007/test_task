@@ -32,3 +32,12 @@ export const ERROR_MESSAGES = {
 }
 
 export const AUTHORIZATION_ACCESS_SECRET_KEY = process.env.ACCESS_SECRET_KEY;
+
+export const URL_CALLBACKS = {
+   ...(process.env.NODE_ENV === 'development'? {
+      GOOGLE_URL_CALLBACK: 'http://localhost:3000/auth/google/callback',
+      FACEBOOK_URL_CALLBACK: 'http://localhost:3000/auth/facebook/callback',
+      LINKEDIN_URL_CALLBACK: 'http://localhost:3000/auth/linkedin/callback',
+   } : {}),
+
+}
