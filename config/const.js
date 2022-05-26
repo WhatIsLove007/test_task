@@ -41,3 +41,10 @@ export const URL_CALLBACKS = {
    } : {}),
 
 }
+
+export const USER_PROFILE_COMPLETENESS = {
+   AVATAR: 25,
+   PROFILE_HEADER: 25,
+   ABOUT: 25,
+   USER_PREFERENCE: 25,
+}

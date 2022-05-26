@@ -55,7 +55,7 @@ export const typeDefs = gql`
     recoverPassword(token: String!, password: String!, repeatingPassword: String!): LoginResponse!
     deleteAccount: Response
     editUserProfile(input: UserProfileEditingInput): UserProfileEditing
-    addUserAvatar(file: Upload): Response
+    addUserAvatar(file: Upload): String
     switchFavoritePhotocard(photocardId: Int!): SwitchFavoritePhotocard
     switchUserPreference(preferenceName: String!): SwitchUserPreference
     bookTour(input: BookTourInput): Response

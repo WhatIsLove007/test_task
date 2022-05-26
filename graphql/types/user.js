@@ -9,7 +9,13 @@ import models from '../../models';
 import * as inputDataValidation from '../../utils/inputDataValidation.js';
 import * as passwordHashing from '../../utils/passwordHashing.js';
 import * as userAuthentication from '../../utils/userAuthentication.js';
-import {USER_STATUSES, USER_ROLES, ERROR_MESSAGES, ORDER_STATUSES} from '../../config/const.js';
+import {
+   USER_STATUSES, 
+   USER_ROLES, 
+   ERROR_MESSAGES, 
+   ORDER_STATUSES, 
+   USER_PROFILE_COMPLETENESS
+} from '../../config/const.js';
 import * as checkUserRights from '../../utils/checkUserRights.js';
 import * as nodemailer from '../../utils/nodemailer.js';
 import * as crypto from '../../utils/crypto.js';
@@ -63,10 +69,10 @@ export default class User {
 
                let profileCompleted = 0;
 
-               if (userInformation.avatar) profileCompleted += 25;
-               if (userInformation.profileHeader) profileCompleted += 25;
-               if (userInformation.about) profileCompleted += 25;
-               if (userPreferences.length) profileCompleted += 25;
+               if (userInformation.avatar) profileCompleted += USER_PROFILE_COMPLETENESS.AVATAR;
+               if (userInformation.profileHeader) profileCompleted += USER_PROFILE_COMPLETENESS.PROFILE_HEADER;
+               if (userInformation.about) profileCompleted += USER_PROFILE_COMPLETENESS.ABOUT;
+               if (userPreferences.length) profileCompleted += USER_PROFILE_COMPLETENESS.USER_PREFERENCE;
 
                user.profileCompleted = profileCompleted;
 
@@ -121,12 +127,14 @@ export default class User {
                   throw new Error('INCORRECT DATE')
                }
 
-               if (!iAgreeCheckbox) throw new Error(ERROR_MESSAGES.FORBIDDEN);
+               if (!iAgreeCheckbox) throw new Error("USER DOES NOT AGREE WITH THE TERMS");
 
                if (password !== repeatingPassword) throw new Error('Passwords do not match');
                if (!inputDataValidation.validateLogin(login)) throw new Error('Incorrect login');
                if (!inputDataValidation.validateEmail(email)) throw new Error('Incorrect email');
                if (!inputDataValidation.validatePassword(password)) throw new Error('Incorrect password');
+
+               inputDataValidation.checkFilledFields([name, surname, birthdate, city, zipCode, address]);
 
                const existingLogin = await models.User.findOne({where: {login}});
                if (existingLogin) throw new Error(ERROR_MESSAGES.LOGIN_ALREADY_EXISTS);
@@ -136,7 +144,6 @@ export default class User {
 
                const country = await models.Country.findByPk(countryId);
                if (!country) throw new Error(ERROR_MESSAGES.COUNTRY_NOT_FOUND);
-
 
                const transaction = await sequelize.transaction();
 
@@ -185,7 +192,6 @@ export default class User {
 
                   await user.createUserToken({}, {transaction});
 
-
                   await transaction.commit();
                   
                   return {authorization: userAuthentication.generateAccessToken(user.id, user.login)};
@@ -213,7 +219,7 @@ export default class User {
 
                await models.UserToken.update(
                   {encryptedPasswordResetToken: encryptedToken}, 
-                  {where: {userId: user.id}}
+                  {where: {userId: user.id}},
                );
 
                await nodemailer.sendPasswordResetEmail(user.email, url);
@@ -281,7 +287,7 @@ export default class User {
 
                const {profileHeader, name, surname, birthdate, countryId, address, about} = input;
 
-               inputDataValidation.checkFilledFields([name, countryId, address]);
+               inputDataValidation.checkFilledFields([name, countryId, address, birthdate]);
 
                if (new Date(birthdate) < new Date(1900, 0, 2) || new Date(birthdate) > new Date()) {
                   throw new Error('INCORRECT DATE')
@@ -299,8 +305,8 @@ export default class User {
                   await userInformation.update({
                      ...(profileHeader? {profileHeader} : {profileHeader: null}),
                      name,
+                     birthdate,
                      ...(surname? {surname} : {}),
-                     ...(birthdate? {birthdate} : {}),
                      ...(about? {about} : {}),
                   }, {transaction});
 
@@ -348,7 +354,9 @@ export default class User {
 
                   await transaction.commit();
 
-                  return {success: true};
+                  const url = context.req.protocol + '://' + context.req.get('host');
+
+                  return `${url}/storage/files/user/avatars/${avatarName}`;
 
                } catch (error) {
                   await transaction.rollback();
