@@ -1,6 +1,7 @@
 import {gql} from 'apollo-server-express';
 
 import models from '../../models';
+import { ERROR_MESSAGES } from '../../config/const.js';
 
 export default class Tour {
 
@@ -9,24 +10,7 @@ export default class Tour {
 
          Query: {
 
-            getTourBookingPage: async (parent, {}, context) => {
-
-               const tours = await models.Tour.findAll();
-
-               const reviews = await models.Review.findAll();
-
-               const url = context.req.protocol + '://' + context.req.get('host');
-
-               for (const review of reviews) {
-                  const user = await review.getUser({include: models.UserInformation});
-                  review.userAvatarUrl = `${url}/storage/files/user/avatars/${user.UserInformation.avatar}`;
-               }
-
-               return {tours, reviews};
-
-            }
-
-         },
+            getTours: () => models.Tour.findAll()},
 
       }
    }
@@ -44,9 +28,11 @@ export default class Tour {
          price: Int
       }
 
-      type TourBookingPage {
-         tours: [Tour]
-         reviews: [Review]
+      input BookTourInput {
+         fullName: String!
+         phone: String!
+         date: String!
+         tourId: Int!
       }
 
       

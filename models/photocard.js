@@ -10,7 +10,7 @@ export default class Photocard extends Model {
         autoIncrement: true,
         allowNull: false,
       },
-      name: {
+      fileName: {
         type: DataTypes.STRING,
         allowNull: false,
       },

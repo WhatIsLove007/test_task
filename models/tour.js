@@ -17,7 +17,6 @@ export default class Tour extends Model {
       },
       managerId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
         references: {model: 'Users'},
       },
       name: {

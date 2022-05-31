@@ -30,6 +30,6 @@ module.exports = {
   },
 
   async down (queryInterface, Sequelize) {
-    queryInterface.bulkDelete('Shops', null, {});
+    await queryInterface.bulkDelete('Shops', null, {});
   }
 };

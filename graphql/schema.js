@@ -11,6 +11,7 @@ import Order from './types/order.js';
 import Review from './types/review.js';
 import Discount from './types/discount.js';
 import Tour from './types/tour.js';
+import Shop from './types/shop.js';
 import * as userAuthentication from '../utils/userAuthentication.js';
 import { USER_STATUSES } from '../config/const.js';
 
@@ -27,6 +28,7 @@ export const typeDefs = gql`
   ${Order.typeDefs()}
   ${Review.typeDefs()}
   ${Tour.typeDefs()}
+  ${Shop.typeDefs()}
 
   type LoginResponse {
     authorization: String!
@@ -43,9 +45,14 @@ export const typeDefs = gql`
   type Query {
     signin(input: UserSigninInput): LoginResponse
     getUserProfile(photocardsLimit: Int, photocardsOffset: Int): UserProfile
-    getOrdersWithAdditionalData(input: OrderFilterInput!): OrdersWithAdditionalData
-    getTourBookingPage: TourBookingPage
+    getOrders(input: OrderFilterInput!): [Order]
+    getDistinctManagersInOrders: [String]
+    getDistinctShopsInOrders: [Shop]
+    getDistinctClientsInOrders: [String]
+    getTotalOrders: Int
     getCountries: [Country]
+    getTours: [Tour]
+    getReviews: [Review]
   }
 
 
@@ -60,7 +67,6 @@ export const typeDefs = gql`
     switchUserPreference(preferenceName: String!): SwitchUserPreference
     bookTour(input: BookTourInput): Response
     acceptClientOrder(orderId: Int!): Response
-    addReview(tourId: Int!, assessment: Int!, text: String!): Response
     setDiscountForSubscribers(email: String!): Response
   }
   
@@ -71,9 +77,9 @@ function combineResolvers() {
   return _.merge(
     User.resolver(),
     Order.resolver(),
-    Review.resolver(),
     Discount.resolver(),
     Tour.resolver(),
+    Review.resolver(),
     Country.resolver(),
   )
 }

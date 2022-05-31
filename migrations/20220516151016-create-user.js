@@ -1,5 +1,8 @@
 'use strict';
 
+const {USER_STATUSES, USER_ROLES} = require('../config/const.js');
+
+
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('Users', {
@@ -24,14 +27,14 @@ module.exports = {
       },
       status: {
         type: Sequelize.ENUM,
-        values: ['ACTIVE', 'BANNED'],
-        defaultValue: 'ACTIVE',
+        values: [USER_STATUSES.ACTIVE, USER_STATUSES.BANNED],
+        defaultValue: USER_STATUSES.ACTIVE,
         allowNull: false,
       },
       role: {
         type: Sequelize.ENUM,
-        values: ['CLIENT', 'MANAGER'],
-        defaultValue: 'CLIENT',
+        values: [USER_ROLES.CLIENT, USER_ROLES.MANAGER],
+        defaultValue: USER_ROLES.CLIENT,
         allowNull: false,
       },
       shopId: {

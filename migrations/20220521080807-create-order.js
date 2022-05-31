@@ -1,5 +1,8 @@
 'use strict';
 
+const {ORDER_STATUSES} = require('../config/const.js');
+
+
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('Orders', {
@@ -17,10 +20,6 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {model: 'Shops'},
-      },
-      shopName: {
-        type: Sequelize.STRING,
-        allowNull: false,
       },
       managerFullName: {
         type: Sequelize.STRING,
@@ -51,8 +50,8 @@ module.exports = {
       },
       status: {
         type: Sequelize.ENUM,
-        values: ['IN_PROCESSING', 'NEW', 'DELIVERY', 'CANCELED'],
-        defaultValue: 'IN_PROCESSING',
+        values: [ORDER_STATUSES.IN_PROCESSING, ORDER_STATUSES.NEW, ORDER_STATUSES.DELIVERY, ORDER_STATUSES.CANCELED],
+        defaultValue: ORDER_STATUSES.IN_PROCESSING,
         allowNull: false,
       },
       createdAt: {

@@ -1,17 +1,17 @@
-import {THROW_ERROR_MESSAGES} from '../config/const.js';
+import {ForbiddenError, AuthenticationError} from 'apollo-server-express'
 
 
 
 export const checkUserAuthentication = context => {
 
-   if ( !(context?.user) ) throw new Error(THROW_ERROR_MESSAGES.FORBIDDEN);
+   if ( !(context?.user) ) throw new AuthenticationError('UNAUTHENTICATED');
 
 }
 
 export const checkRole = (context, role) => {
 
    if (context?.user?.role !== role) {
-      throw new Error(THROW_ERROR_MESSAGES.FORBIDDEN);
+      throw new ForbiddenError('FORBIDDEN');
    }
 
 }

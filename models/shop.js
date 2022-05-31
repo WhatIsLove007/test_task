@@ -24,6 +24,7 @@ export default class Shop extends Model {
 
   static associate(models) {
     this.hasMany(models.User, {foreignKey: 'shopId'});
+    this.hasMany(models.Order, {foreignKey: 'shopId'});
   }
   
 };

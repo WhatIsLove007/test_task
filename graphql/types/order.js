@@ -11,57 +11,16 @@ export default class Order {
    static resolver() {
       return {
 
-         OrdersWithAdditionalData: {
-
-            managersInOrders: async () => {
-               const distinctManagersInOrders = await models.Order.findAll({
-                  attributes: [
-                     [Sequelize.fn('DISTINCT', Sequelize.col('managerFullName')), 'managerFullName'],
-                  ],
-                  where: {
-                     managerId: {[Sequelize.Op.ne]: null},
-                  },
-               });
-
-               return distinctManagersInOrders.map(manager => manager.managerFullName);
-            },
-            
-            shopsInOrders: async () => {
-               const distinctShopsInOrders = await models.Order.findAll({
-                  attributes: [
-                     [Sequelize.fn('DISTINCT', Sequelize.col('shopName')), 'shopName'],
-                  ],
-               });
-      
-               return distinctShopsInOrders.map(shop => shop.shopName);
-            },
-
-            clientsInOrders: async () => {
-               const distinctClientsInOrders = await models.Order.findAll({
-                  attributes: [
-                     [Sequelize.fn('DISTINCT', Sequelize.col('clientFullName')), 'clientFullName'],
-                  ],
-               });
-               
-               return distinctClientsInOrders.map(client => client.clientFullName);
-               
-            },
-            
-            totalOrders: () => models.Order.count(),
-
-         },
-
-
          Query: {
 
-            getOrdersWithAdditionalData: async (parent, {input}, context) => {
+            getOrders: async (parent, {input}, context) => {
 
                checkUserRights.checkRole(context, USER_ROLES.MANAGER);
 
                const {
-                  limit, offset, dateFrom, dateUntil, manager, shop,
+                  limit, offset, dateFrom, dateUntil, manager, shopId,
                   client, priceFrom, priceTo, paid, status, searchKey
-
+                  
                } = input;
 
 
@@ -70,7 +29,7 @@ export default class Order {
                   offset,
                   where: {
                      ...(manager? {managerFullName: manager} : {}),
-                     ...(shop? {shopName: shop} : {}),
+                     ...(shopId? {shopId} : {}),
                      ...(client? {clientFullName: client} : {}),
                      price: {
                         ...(priceFrom? {[Op.gte]: priceFrom} : {[Op.gte]: 0}),
@@ -80,7 +39,6 @@ export default class Order {
                      ...(status? {status}: {}),
                      ...(searchKey? {[Op.or]: [
                         {managerFullName: {[Op.like]: `%${searchKey}%`}},
-                        {shopName: {[Op.like]: `%${searchKey}%`}},
                         {clientFullName: {[Op.like]: `%${searchKey}%`}},
                         {price: {[Op.like]: `%${searchKey}%`}},
                      ]} : {}),
@@ -91,16 +49,65 @@ export default class Order {
                   },
                });
 
-
-               return {orders};
+               return orders;
 
             },
 
+            getDistinctManagersInOrders: async (parent, {}, context) => {
+
+               checkUserRights.checkRole(context, USER_ROLES.MANAGER);
+
+               const distinctManagersInOrders = await models.Order.findAll({
+                  attributes: [
+                     [Sequelize.fn('DISTINCT', Sequelize.col('managerFullName')), 'managerFullName'],
+                  ],
+                  where: {
+                     managerFullName: {[Sequelize.Op.ne]: null},
+                  },
+               });
+
+               return distinctManagersInOrders.map(manager => manager.managerFullName);
+            },
+            
+            getDistinctShopsInOrders: async (parent, {}, context) => {
+
+               checkUserRights.checkRole(context, USER_ROLES.MANAGER);
+
+               const distinctShopsInOrders = await models.Order.findAll({
+                  attributes: [
+                     [Sequelize.fn('DISTINCT', Sequelize.col('shopId')), 'shopId'],
+                  ],
+               });
+      
+               return distinctShopsInOrders.map(shop => shop.getShop());
+            },
+   
+            getDistinctClientsInOrders: async (parent, {}, context) => {
+
+               checkUserRights.checkRole(context, USER_ROLES.MANAGER);
+
+               const distinctClientsInOrders = await models.Order.findAll({
+                  attributes: [
+                     [Sequelize.fn('DISTINCT', Sequelize.col('clientFullName')), 'clientFullName'],
+                  ],
+               });
+
+               return distinctClientsInOrders.map(client => client.clientFullName);
+               
+            },
+            
+            getTotalOrders: async (parent, {}, context) => {
+
+               checkUserRights.checkRole(context, USER_ROLES.MANAGER);
+
+               return models.Order.count()
+            },
+            
          },
       }
    }
-
-
+   
+   
    static typeDefs() {
       return gql`
 
@@ -108,7 +115,6 @@ export default class Order {
          id: Int
          managerId: Int
          shopId: Int
-         shopName: String
          managerFullName: String
          clientFullName: String
          clientPhone: String
@@ -118,15 +124,6 @@ export default class Order {
          status: OrderStatus
          createdAt: String
       }
-
-      type OrdersWithAdditionalData {
-         orders: [Order]
-         managersInOrders: [String]
-         shopsInOrders: [String]
-         clientsInOrders: [String]
-         totalOrders: Int
-      }
-
 
       enum OrderStatus {
          ${ORDER_STATUSES.IN_PROCESSING}
@@ -141,7 +138,7 @@ export default class Order {
          dateFrom: String
          dateUntil: String
          manager: String
-         shop: String
+         shopId: Int
          client: String
          priceFrom: Int
          priceTo: Int

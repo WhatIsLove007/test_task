@@ -12,6 +12,9 @@ export default class Discount {
 
             setDiscountForSubscribers: async (parent, {email}) => {
 
+               const existingEmail = await models.Discount.findOne({where: {email}});
+               if (existingEmail) throw new Error('THIS EMAIL ALREADY HAS A DISCOUNT');
+
                await models.Discount.create({
                   email,
                   amountOfDiscount: 25,

@@ -3,8 +3,20 @@
   "version": "1.0.0",
   "description": "Test task",
   "main": "app.js",
+  "engines": {
+    "npm": ">=8.5.5",
+    "node": ">=17.4.1"
+  },
   "scripts": {
-    "babel": "nodemon --exec npx babel-node ./app.js"
+    "babel": "nodemon --exec npx babel-node ./app.js",
+    "build": "npx babel --ignore node_modules ../test_task --out-dir dist --copy-files",
+    "db:migrate": "npx sequelize-cli db:migrate",
+    "db:seed:all": "npx sequelize-cli db:seed:all",
+    "db:migrate:undo:all": "npx sequelize-cli db:migrate:undo:all",
+    "db:seed:undo:all": "npx sequelize-cli db:seed:undo:all",
+    "db:clear": "npm run db:migrate:undo:all && npx babel-node ./scripts/clearDB.js",
+    "db:fresh": "npm run db:clear && npm run db:migrate && npm run db:seed:all",
+    "serve": "node -r dotenv/config dist/app.js"
   },
   "repository": {
     "type": "git",
@@ -36,6 +48,7 @@
     "passport-google-oauth2": "^0.2.0",
     "passport-linkedin-oauth2": "^2.0.0",
     "sequelize": "^6.19.0",
+    "sequelize-cli": "^6.4.1",
     "uuid": "^8.3.2",
     "validator": "^13.7.0"
   },
@@ -45,7 +58,8 @@
     "@babel/node": "^7.17.10",
     "@babel/preset-env": "^7.17.10",
     "@babel/register": "^7.17.7",
-    "nodemon": "^2.0.16",
-    "sequelize-cli": "^6.4.1"
+    "babel-eslint": "^10.1.0",
+    "eslint": "^8.16.0",
+    "nodemon": "^2.0.16"
   }
 }

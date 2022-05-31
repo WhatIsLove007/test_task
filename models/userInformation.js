@@ -1,4 +1,5 @@
 import { Model } from 'sequelize';
+import { USER_GENDERS } from '../config/const.js';
 
 export default class UserInformation extends Model {
   
@@ -11,16 +12,16 @@ export default class UserInformation extends Model {
         references: {model: 'Users'},
         onDelete: 'cascade',
       },
-      name: {
+      firstName: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      surname: {
+      lastName: {
         type: DataTypes.STRING,
       },
       gender: {
         type: DataTypes.ENUM,
-        values: ['MALE', 'FEMALE'],
+        values: [USER_GENDERS.MALE, USER_GENDERS.FEMALE],
       },
       birthdate: {
         type: DataTypes.DATE,

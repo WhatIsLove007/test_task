@@ -1,4 +1,4 @@
-import {gql} from 'apollo-server-express';
+import {gql, UserInputError, ForbiddenError} from 'apollo-server-express';
 import { Sequelize, sequelize } from '../../models/index.js';
 import {GraphQLUpload} from 'graphql-upload';
 import fs from 'fs';
@@ -19,7 +19,6 @@ import {
 import * as checkUserRights from '../../utils/checkUserRights.js';
 import * as nodemailer from '../../utils/nodemailer.js';
 import * as crypto from '../../utils/crypto.js';
-import { isDate } from 'util/types';
 
 
 
@@ -84,7 +83,7 @@ export default class User {
                });
 
                for (const photocard of photocards) {
-                  photocard.urlPath = `${url}/storage/files/photocards/${photocard.name}`;
+                  photocard.urlPath = `${url}/storage/files/photocards/${photocard.fileName}`;
                }
 
                user.photocards = photocards;
@@ -95,7 +94,7 @@ export default class User {
                for (const favoritePhotocard of favoritePhotocards) {
                
                   const photocard = await favoritePhotocard.getPhotocard();
-                  photocard.urlPath = `${url}/storage/files/photocards/${photocard.name}`;
+                  photocard.urlPath = `${url}/storage/files/photocards/${photocard.fileName}`;
                   user.favoritePhotocards.push(photocard);
                }
 
@@ -117,24 +116,24 @@ export default class User {
 
                const { 
                   login, email, password,
-                  repeatingPassword, name, surname, 
+                  repeatingPassword, firstName, lastName, 
                   gender, birthdate, about, countryId, 
                   city, zipCode, address, additionalAddress, 
                   desiredVacationFrom, desiredVacationUntil, iAgreeCheckbox
                } = input;
 
                if (new Date(birthdate) < new Date(1900, 0, 2) || new Date(birthdate) > new Date()) {
-                  throw new Error('INCORRECT DATE')
+                  throw new UserInputError('INCORRECT DATE')
                }
 
-               if (!iAgreeCheckbox) throw new Error("USER DOES NOT AGREE WITH THE TERMS");
+               if (!iAgreeCheckbox) throw new ForbiddenError("USER DOES NOT AGREE WITH THE TERMS");
 
-               if (password !== repeatingPassword) throw new Error('Passwords do not match');
-               if (!inputDataValidation.validateLogin(login)) throw new Error('Incorrect login');
-               if (!inputDataValidation.validateEmail(email)) throw new Error('Incorrect email');
-               if (!inputDataValidation.validatePassword(password)) throw new Error('Incorrect password');
+               if (password !== repeatingPassword) throw new UserInputError('Passwords do not match');
+               if (!inputDataValidation.validateLogin(login)) throw new UserInputError('Incorrect login');
+               if (!inputDataValidation.validateEmail(email)) throw new UserInputError('Incorrect email');
+               if (!inputDataValidation.validatePassword(password)) throw new UserInputError('Incorrect password');
 
-               inputDataValidation.checkFilledFields([name, surname, birthdate, city, zipCode, address]);
+               inputDataValidation.checkFilledFields([firstName, lastName, birthdate, city, zipCode, address]);
 
                const existingLogin = await models.User.findOne({where: {login}});
                if (existingLogin) throw new Error(ERROR_MESSAGES.LOGIN_ALREADY_EXISTS);
@@ -172,8 +171,8 @@ export default class User {
                   }
    
                   await user.createUserInformation({
-                     name, 
-                     surname, 
+                     firstName, 
+                     lastName, 
                      ...(gender? {gender} : {}),
                      birthdate, 
                      ...(about? {about} : {}),
@@ -234,6 +233,9 @@ export default class User {
                if (!userTokenRecord) throw new Error('WRONG TOKEN');
 
                const user = await userTokenRecord.getUser();
+               
+               if (!inputDataValidation.validatePassword(password)) throw new UserInputError('Incorrect password');
+               if (password !== repeatingPassword) throw new UserInputError('Passwords do not match');
 
                const transaction = await sequelize.transaction();
 
@@ -245,9 +247,6 @@ export default class User {
                   if (Date.now() - timestamp > 259200000) {  // 3 days
                      throw new Error('TOKEN EXPIRED');
                   }
-
-                  if (!inputDataValidation.validatePassword(password)) throw new Error('Incorrect password');
-                  if (password !== repeatingPassword) throw new Error('Passwords do not match');
 
                   await user.update({passwordHash: await passwordHashing.hash(password)}, {transaction});
 
@@ -285,12 +284,12 @@ export default class User {
 
                checkUserRights.checkUserAuthentication(context);
 
-               const {profileHeader, name, surname, birthdate, countryId, address, about} = input;
+               const {profileHeader, firstName, lastName, birthdate, countryId, address, about} = input;
 
-               inputDataValidation.checkFilledFields([name, countryId, address, birthdate]);
+               inputDataValidation.checkFilledFields([firstName, countryId, address, birthdate]);
 
                if (new Date(birthdate) < new Date(1900, 0, 2) || new Date(birthdate) > new Date()) {
-                  throw new Error('INCORRECT DATE')
+                  throw new UserInputError('INCORRECT DATE')
                }
 
                const country = await models.Country.findByPk(countryId);
@@ -304,9 +303,9 @@ export default class User {
                try {
                   await userInformation.update({
                      ...(profileHeader? {profileHeader} : {profileHeader: null}),
-                     name,
+                     firstName,
                      birthdate,
-                     ...(surname? {surname} : {}),
+                     ...(lastName? {lastName} : {}),
                      ...(about? {about} : {}),
                   }, {transaction});
 
@@ -391,7 +390,7 @@ export default class User {
                }
 
                const url = context.req.protocol + '://' + context.req.get('host');
-               photocard.urlPath = `${url}/storage/files/photocards/${photocard.name}`;
+               photocard.urlPath = `${url}/storage/files/photocards/${photocard.fileName}`;
 
                return {photocard, action};
 
@@ -415,26 +414,6 @@ export default class User {
 
             },
 
-            bookTour: async (parent, {input}) => {
-
-               const {fullName, phone, date, tourId} = input;
-
-               const tour = await models.Tour.findByPk(tourId, {include: models.Shop});
-               if (!tour) throw new Error(ERROR_MESSAGES.TOUR_NOT_FOUND);
-
-               const order = await models.Order.create({
-                  shopId: tour.shopId,
-                  shopName: tour.Shop.name,
-                  clientFullName: fullName,
-                  clientPhone: phone,
-                  price: tour.price,
-                  tourDate: date,
-               });
-
-               return {success: true};
-
-            },
-
             acceptClientOrder: async (parent, {orderId}, context) => {
 
                checkUserRights.checkRole(context, USER_ROLES.MANAGER);
@@ -444,11 +423,12 @@ export default class User {
                const order = await models.Order.findByPk(orderId);
                if (!order) throw new Error('ORDER NOT FOUND');
 
-               if (manager.shopId !== order.shopId) throw new Error('IS NOT ALLOWED');
+               if (manager.shopId !== order.shopId) throw new ForbiddenError('IS NOT ALLOWED');
 
                const userInformation = await manager.getUserInformation({
                   attributes: [
-                     [Sequelize.fn('CONCAT', Sequelize.col('surname'), ' ', Sequelize.col('name')), 'managerFullName'],
+                     [Sequelize.fn('CONCAT', Sequelize.col('lastName'), ' ', 
+                     Sequelize.col('firstName')), 'managerFullName'],
                   ],
                   raw: true,
                });
@@ -496,8 +476,8 @@ export default class User {
 
          type UserProfileEditing {
             profileHeader: String
-            name: String
-            surname: String
+            firstName: String
+            lastName: String
             birthdate: String
             countryId: Int
             address: String
@@ -536,8 +516,8 @@ export default class User {
             email: String!
             password: String!
             repeatingPassword: String!
-            name: String!
-            surname: String!
+            firstName: String!
+            lastName: String!
             gender: Gender
             birthdate: String!
             about: String
@@ -558,19 +538,12 @@ export default class User {
 
          input UserProfileEditingInput {
             profileHeader: String
-            name: String!
-            surname: String
+            firstName: String!
+            lastName: String
             birthdate: String!
             countryId: Int!
             address: String!
             about: String
-         }
-
-         input BookTourInput {
-            fullName: String!
-            phone: String!
-            date: String!
-            tourId: Int!
          }
       `
    }

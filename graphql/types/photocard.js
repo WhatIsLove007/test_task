@@ -12,7 +12,7 @@ export default class Photocard {
 
       type Photocard {
          id: Int
-         name: String
+         fileName: String
          urlPath: String
       }
 

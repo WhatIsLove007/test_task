@@ -1,4 +1,5 @@
 import { Model } from 'sequelize';
+import {ORDER_STATUSES} from '../config/const.js';
 
 export default class Order extends Model {
   
@@ -18,10 +19,6 @@ export default class Order extends Model {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {model: 'Shops'},
-      },
-      shopName: {
-        type: DataTypes.STRING,
-        allowNull: false,
       },
       managerFullName: {
         type: DataTypes.STRING,
@@ -52,8 +49,8 @@ export default class Order extends Model {
       },
       status: {
         type: DataTypes.ENUM,
-        values: ['IN_PROCESSING', 'NEW', 'DELIVERY', 'CANCELED'],
-        defaultValue: 'IN_PROCESSING',
+        values: [ORDER_STATUSES.IN_PROCESSING, ORDER_STATUSES.NEW, ORDER_STATUSES.DELIVERY, ORDER_STATUSES.CANCELED],
+        defaultValue: ORDER_STATUSES.IN_PROCESSING,
         allowNull: false,
       },
       createdAt: {

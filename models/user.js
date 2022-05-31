@@ -1,4 +1,5 @@
 import { Model } from 'sequelize';
+import { USER_ROLES, USER_STATUSES } from '../config/const.js';
 
 export default class User extends Model {
   
@@ -25,14 +26,14 @@ export default class User extends Model {
       },
       status: {
         type: DataTypes.ENUM,
-        values: ['ACTIVE', 'BANNED'],
-        defaultValue: 'ACTIVE',
+        values: [USER_STATUSES.ACTIVE, USER_STATUSES.BANNED],
+        defaultValue: USER_STATUSES.ACTIVE,
         allowNull: false,
       },
       role: {
         type: DataTypes.ENUM,
-        values: ['CLIENT', 'MANAGER'],
-        defaultValue: 'CLIENT',
+        values: [USER_ROLES.CLIENT, USER_ROLES.MANAGER],
+        defaultValue: USER_ROLES.CLIENT,
         allowNull: false,
       },
       shopId: {

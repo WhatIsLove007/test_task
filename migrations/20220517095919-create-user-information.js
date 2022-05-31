@@ -1,5 +1,8 @@
 'use strict';
 
+const {USER_GENDERS} = require('../config/const.js');
+
+
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('UserInformation', {
@@ -19,7 +22,7 @@ module.exports = {
       },
       gender: {
         type: Sequelize.ENUM,
-        values: ['MALE', 'FEMALE'],
+        values: [USER_GENDERS.MALE, USER_GENDERS.FEMALE],
       },
       birthdate: {
         type: Sequelize.DATE,

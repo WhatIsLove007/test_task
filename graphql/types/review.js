@@ -1,8 +1,6 @@
 import {gql} from 'apollo-server-express';
 
-import models, { Sequelize } from '../../models';
-import * as checkUserRights from '../../utils/checkUserRights.js';
-import { ERROR_MESSAGES } from '../../config/const';
+import models from '../../models';
 
 
 export default class Review {
@@ -10,39 +8,26 @@ export default class Review {
    static resolver() {
       return {
 
-         Mutation: {
+         Query: {
 
-            addReview: async (parent, {tourId, assessment, text}, context) => {
+            getReviews: async (parent, {}, context) => {
 
-               checkUserRights.checkUserAuthentication(context);
+               const reviews = await models.Review.findAll();
 
-               const user = context.user;
+               const url = context.req.protocol + '://' + context.req.get('host');
 
-               const tour = await models.Tour.findByPk(tourId);
-               if (!tour) throw new Error(ERROR_MESSAGES.TOUR_NOT_FOUND);
+               for (const review of reviews) {
+                  const user = await review.getUser({include: models.UserInformation});
+                  review.userAvatarUrl = `${url}/storage/files/user/avatars/${user.UserInformation.avatar}`;
+               }
 
-               const userInformation = await user.getUserInformation({
-                  attributes: [
-                     [Sequelize.fn('CONCAT', Sequelize.col('surname'), ' ', Sequelize.col('name')), 'userFullName'],
-                  ],
-                  raw: true,
-               });
+               return reviews;
 
-               await user.createReview({
-                  tourId,
-                  assessment,
-                  text,
-                  userFullName: userInformation.userFullName,
-               });
-
-               return {success: true};
-
-            },
+            }
 
          },
       }
    }
-
 
    static typeDefs() {
       return gql`

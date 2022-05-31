@@ -5,34 +5,34 @@ module.exports = {
 
     await queryInterface.bulkInsert('Photocards', [
       {
-        name: 'bar.jpg',
+        fileName: 'bar.jpg',
       },
       {
-        name: 'bike.jpg',
+        fileName: 'bike.jpg',
       },
       {
-        name: 'blue_water.jpg',
+        fileName: 'blue_water.jpg',
       },
       {
-        name: 'cameras.jpg',
+        fileName: 'cameras.jpg',
       },
       {
-        name: 'leaf.jpg',
+        fileName: 'leaf.jpg',
       },
       {
-        name: 'mouse.jpg',
+        fileName: 'mouse.jpg',
       },
       {
-        name: 'rain.jpg',
+        fileName: 'rain.jpg',
       },
       {
-        name: 'town.jpg',
+        fileName: 'town.jpg',
       },
       {
-        name: 'tropics.jpg',
+        fileName: 'tropics.jpg',
       },
       {
-        name: 'woman.jpg',
+        fileName: 'woman.jpg',
       },
 
     ], {});
@@ -40,6 +40,6 @@ module.exports = {
   },
 
   async down (queryInterface, Sequelize) {
-    queryInterface.bulkDelete('Photocards', null, {});
+    await queryInterface.bulkDelete('Photocards', null, {});
   }
 };

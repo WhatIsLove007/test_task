@@ -16,7 +16,6 @@ module.exports = {
       },
       managerId: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         references: {model: 'Users'},
       },
       name: {

@@ -13,8 +13,8 @@ export default class UserInformation {
 
       type UserInformation {
          userId: Int
-         name: String
-         surname: String
+         firstName: String
+         lastName: String
          gender: Gender
          birthdate: String
          about: String
