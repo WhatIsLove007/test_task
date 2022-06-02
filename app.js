@@ -3,49 +3,30 @@ import {ApolloServer} from 'apollo-server-express';
 import {graphqlUploadExpress} from 'graphql-upload';
 import path from 'path';
 import passport from 'passport';
-import passportGoogleOauth2 from 'passport-google-oauth2';
-import passportFacebook from 'passport-facebook';
-import passportLinkedinOauth2 from 'passport-linkedin-oauth2';
 
 import {typeDefs, resolvers, context} from './graphql/schema.js';
 import * as userAuthentication from './utils/userAuthentication.js';
-import {URL_CALLBACKS} from './config/const.js';
-import {createUserViaGoogle, createUserViaFacebook, createUserViaLinkedin} from './utils/oauth.js';
-
+import {googleStrategy, facebookStrategy, linkedinStrategy} from './utils/oauth.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const GoogleStrategy = passportGoogleOauth2.Strategy;
-const FacebookStrategy = passportFacebook.Strategy;
-const LinkedinStrategy = passportLinkedinOauth2.Strategy;
-
 
 async function startApolloServer() {
-
   const server = new ApolloServer({ typeDefs, resolvers, context});
   await server.start();
   app.use(graphqlUploadExpress());
   server.applyMiddleware({app});
-  
 }
 startApolloServer();
 
-
 app.use(express.json());
-
 
 app.use('/storage/files/photocards', express.static(path.join(__dirname, '/uploads/photocards/')));
 app.use('/storage/files/user/avatars', express.static(path.join(__dirname, '/uploads/user/avatars')));
 
-
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: URL_CALLBACKS.GOOGLE_URL_CALLBACK,
-  passReqToCallback : true,
-},
-  createUserViaGoogle,
-));
+passport.use(googleStrategy);
+passport.use(facebookStrategy);
+passport.use(linkedinStrategy);
 
 app.get('/auth/google', passport.authenticate("google", {scope: ['email', 'profile']}));
 
@@ -60,16 +41,6 @@ app.get("/", (request, response) => {
 });
 
 
-
-passport.use(new FacebookStrategy({
-  clientID: process.env.FACEBOOK_APP_ID,
-  clientSecret: process.env.FACEBOOK_APP_SECRET,
-  callbackURL: URL_CALLBACKS.FACEBOOK_URL_CALLBACK,
-  profileFields: ['id', 'name', 'photos', 'email', 'gender'],
-},
-  createUserViaFacebook,
-));
-
 app.get('/auth/facebook', passport.authenticate('facebook', {session: false}));
 
 app.get('/auth/facebook/callback', passport.authenticate('facebook', 
@@ -80,23 +51,12 @@ app.get('/auth/facebook/callback', passport.authenticate('facebook',
 });
 
 
-
-passport.use(new LinkedinStrategy({
-  clientID: process.env.LINKEDIN_CLIENT_ID,
-  clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-  callbackURL: URL_CALLBACKS.LINKEDIN_URL_CALLBACK,
-  scope: ['r_emailaddress', 'r_liteprofile'],
-},
-createUserViaLinkedin,
-));
-
 app.get('/auth/linkedin', passport.authenticate("linkedin"));
 
 app.get("/auth/linkedin/callback", passport.authenticate('linkedin', {session: false}), (req, res) => {
   const token = userAuthentication.generateAccessToken(req.user.id, req.user.login);
   return res.send({authorization: token, redirect : "/"});
 });
-
 
 
 app.listen(PORT, error => error? console.log(error) : console.log(`Server has been started on PORT ${PORT}...`));

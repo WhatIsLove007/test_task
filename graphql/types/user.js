@@ -14,13 +14,12 @@ import {
    USER_ROLES, 
    ERROR_MESSAGES, 
    ORDER_STATUSES, 
-   USER_PROFILE_COMPLETENESS
+   TOKEN_LIFETIME,
+   DEFAULT_FILTERING_VALUES,
 } from '../../config/const.js';
 import * as checkUserRights from '../../utils/checkUserRights.js';
 import * as nodemailer from '../../utils/nodemailer.js';
 import * as crypto from '../../utils/crypto.js';
-
-
 
 export default class User {
 
@@ -35,9 +34,7 @@ export default class User {
          },
 
          Query: {
-            
             signin: async (parent, {input}) => {
-               
                const {emailOrLogin, password} = input;
 
                const user = await models.User.findOne({
@@ -54,11 +51,9 @@ export default class User {
                }
 
                return {authorization: userAuthentication.generateAccessToken(user.id, user.login)};
-
             },
 
             getUserProfile: async (parent, {photocardsLimit, photocardsOffset}, context) => {
-
                checkUserRights.checkUserAuthentication(context);
 
                const user = context.user;
@@ -66,54 +61,46 @@ export default class User {
                const userInformation = await user.getUserInformation();
                const userPreferences = await user.getUserPreferences();
 
-               let profileCompleted = 0;
-
-               if (userInformation.avatar) profileCompleted += USER_PROFILE_COMPLETENESS.AVATAR;
-               if (userInformation.profileHeader) profileCompleted += USER_PROFILE_COMPLETENESS.PROFILE_HEADER;
-               if (userInformation.about) profileCompleted += USER_PROFILE_COMPLETENESS.ABOUT;
-               if (userPreferences.length) profileCompleted += USER_PROFILE_COMPLETENESS.USER_PREFERENCE;
-
-               user.profileCompleted = profileCompleted;
+               user.profileCompleted = userInformation.calculateProfileCompleteness();
 
                const url = context.req.protocol + '://' + context.req.get('host');
 
                const photocards = await models.Photocard.findAll({
-                  ...(photocardsLimit? {limit: photocardsLimit} : {limit: 10}),
+                  ...(photocardsLimit? {limit: photocardsLimit} : {limit: DEFAULT_FILTERING_VALUES.PHOTOCARDS_LIMIT}),
                   ...(photocardsOffset? {offset: photocardsOffset} : {offset: 0}),
+                  include: {
+                     model: models.FavoritePhotocard,
+                     where: {
+                        userId: user.id,
+                     },
+                     required: false,
+                  },
                });
 
+               user.favoritePhotocards = [];
                for (const photocard of photocards) {
                   photocard.urlPath = `${url}/storage/files/photocards/${photocard.fileName}`;
+
+                  if (photocard.FavoritePhotocards.length) {
+                     const favoritePhotocard = photocard;
+                     favoritePhotocard.urlPath = `${url}/storage/files/photocards/${photocard.fileName}`;
+                     user.favoritePhotocards.push(favoritePhotocard);
+                  }
                }
 
                user.photocards = photocards;
-
-               const favoritePhotocards = await user.getFavoritePhotocards();
-               
-               user.favoritePhotocards = [];
-               for (const favoritePhotocard of favoritePhotocards) {
-               
-                  const photocard = await favoritePhotocard.getPhotocard();
-                  photocard.urlPath = `${url}/storage/files/photocards/${photocard.fileName}`;
-                  user.favoritePhotocards.push(photocard);
-               }
 
                if (userInformation.avatar) {
                   user.userAvatarUrl = `${url}/storage/files/user/avatars/${userInformation.avatar}`;
                }
 
-
                return user;
-
             },
 
          },
 
-
          Mutation: {
-            
             signup: async (parent, {file, input}) => {
-
                const { 
                   login, email, password,
                   repeatingPassword, firstName, lastName, 
@@ -122,24 +109,18 @@ export default class User {
                   desiredVacationFrom, desiredVacationUntil, iAgreeCheckbox
                } = input;
 
-               if (new Date(birthdate) < new Date(1900, 0, 2) || new Date(birthdate) > new Date()) {
-                  throw new UserInputError('INCORRECT DATE')
-               }
-
+               models.UserInformation.validateBirthdate(birthdate);
                if (!iAgreeCheckbox) throw new ForbiddenError("USER DOES NOT AGREE WITH THE TERMS");
-
+               
                if (password !== repeatingPassword) throw new UserInputError('Passwords do not match');
-               if (!inputDataValidation.validateLogin(login)) throw new UserInputError('Incorrect login');
-               if (!inputDataValidation.validateEmail(email)) throw new UserInputError('Incorrect email');
-               if (!inputDataValidation.validatePassword(password)) throw new UserInputError('Incorrect password');
-
+               models.User.validateLogin(login);
+               models.User.validateEmail(email);
+               models.User.validatePassword(password);
+               
                inputDataValidation.checkFilledFields([firstName, lastName, birthdate, city, zipCode, address]);
 
-               const existingLogin = await models.User.findOne({where: {login}});
-               if (existingLogin) throw new Error(ERROR_MESSAGES.LOGIN_ALREADY_EXISTS);
-
-               const existingEmail = await models.User.findOne({where: {email}});
-               if (existingEmail) throw new Error(ERROR_MESSAGES.EMAIL_ALREADY_EXISTS);
+               await models.User.checkLoginExistence(login);
+               await models.User.checkEmailExistence(email);
 
                const country = await models.Country.findByPk(countryId);
                if (!country) throw new Error(ERROR_MESSAGES.COUNTRY_NOT_FOUND);
@@ -153,24 +134,9 @@ export default class User {
                      passwordHash: await passwordHashing.hash(password),
                   }, {transaction});
 
-                  let avatarName;
-                  if (file) {
-                     const avatarPath = path.join(__dirname, '../../uploads/user/avatars/');
-                     
-                     const { createReadStream, filename, mimetype, encoding } = await file;
-                     
-                     inputDataValidation.isImage(mimetype);
+                  const avatarName = await models.User.saveAvatar(file, user.id);
 
-                     const stream = createReadStream();
-
-                     avatarName = `${user.id}.jpg`;
-                     const out = fs.createWriteStream(avatarPath + avatarName);
-
-                     stream.pipe(out);
-                     await finished(out);
-                  }
-   
-                  await user.createUserInformation({
+                  const userInformation = await user.createUserInformation({
                      firstName, 
                      lastName, 
                      ...(gender? {gender} : {}),
@@ -202,7 +168,6 @@ export default class User {
             },
 
             sendPasswordResetEmail: async (parent, {emailOrLogin}, context) => {
-
                const user = await models.User.findOne({
                   where: {
                      ...(inputDataValidation.validateEmail(emailOrLogin)? {email: emailOrLogin} : 
@@ -224,11 +189,9 @@ export default class User {
                await nodemailer.sendPasswordResetEmail(user.email, url);
 
                return {success: true, emailOrLogin};
-
             },
 
             recoverPassword: async (parent, {token, password, repeatingPassword}) => {
-
                const userTokenRecord = await models.UserToken.findOne({where: {encryptedPasswordResetToken: token}});
                if (!userTokenRecord) throw new Error('WRONG TOKEN');
 
@@ -244,7 +207,7 @@ export default class User {
 
                   const timestamp = parseInt(crypto.decrypt(token).split('_')[1]);
 
-                  if (Date.now() - timestamp > 259200000) {  // 3 days
+                  if (Date.now() - timestamp > TOKEN_LIFETIME.THREE_DAYS) {
                      throw new Error('TOKEN EXPIRED');
                   }
 
@@ -258,11 +221,9 @@ export default class User {
                   await transaction.rollback();
                   throw new Error(error);
                }
-
             },
 
             deleteAccount: async (parent, {}, context) => { 
-
                checkUserRights.checkUserAuthentication(context);
 
                const id = context.user.id;
@@ -277,11 +238,9 @@ export default class User {
                await models.User.destroy({where: {id}});
                
                return {success: true};
-
             },
 
             editUserProfile: async (parent, {input}, context) => {
-
                checkUserRights.checkUserAuthentication(context);
 
                const {profileHeader, firstName, lastName, birthdate, countryId, address, about} = input;
@@ -322,11 +281,9 @@ export default class User {
                   await transaction.rollback;
                   throw new Error(error);
                }
-
             },
 
             addUserAvatar: async (parent, {file}, context) => {
-
                checkUserRights.checkUserAuthentication(context);
 
                const transaction = await sequelize.transaction();
@@ -334,20 +291,7 @@ export default class User {
                const userInformation = await context.user.getUserInformation();
 
                try {
-                  
-                  const { createReadStream, filename, mimetype, encoding } = await file;
-                  
-                  inputDataValidation.isImage(mimetype);
-
-                  const stream = createReadStream();
-
-                  const avatarName = `${context.user.id}.jpg`;
-                  const avatarPath = path.join(__dirname, '../../uploads/user/avatars/');
-
-                  const out = fs.createWriteStream(avatarPath + avatarName);
-                  stream.pipe(out);
-
-                  await finished(out);
+                  const avatarName = await models.User.saveAvatar(file, context.user.id);
 
                   await userInformation.update({avatar: avatarName});
 
@@ -361,86 +305,7 @@ export default class User {
                   await transaction.rollback();
                   throw new Error(error);
                }
-
             },
-
-            switchFavoritePhotocard: async (parent, {photocardId}, context) => {
-               
-               checkUserRights.checkUserAuthentication(context);
-
-               const userId = context.user.id;
-
-               const photocard = await models.Photocard.findByPk(photocardId);
-               if (!photocard) throw new Error('PHOTOCARD NOT FOUND');
-   
-               const favoritePhotocard = await models.FavoritePhotocard.findOne({
-                  where: {userId, photocardId},
-               });
-
-               let action;
-
-               if (!favoritePhotocard) {
-                  await photocard.createFavoritePhotocard({userId});
-                  action = 'ADDED';
-
-               } else {
-                  await favoritePhotocard.destroy();
-                  action = 'DELETED';
-
-               }
-
-               const url = context.req.protocol + '://' + context.req.get('host');
-               photocard.urlPath = `${url}/storage/files/photocards/${photocard.fileName}`;
-
-               return {photocard, action};
-
-
-            },
-
-            switchUserPreference: async (parent, {preferenceName}, context) => {
-
-               checkUserRights.checkUserAuthentication(context);
-
-               const user = context.user;
-               const userPreferences = await user.getUserPreferences({where: {name: preferenceName}});
-
-               if (!userPreferences.length) {
-                  const userPreference = await user.createUserPreference({name: preferenceName});
-                  return {userPreference: userPreference, action: 'ADDED'};
-               } else {
-                  return {userPreference: await userPreferences[0].destroy(), action: 'DELETED'};
-               }
-
-
-            },
-
-            acceptClientOrder: async (parent, {orderId}, context) => {
-
-               checkUserRights.checkRole(context, USER_ROLES.MANAGER);
-
-               const manager = context.user;
-
-               const order = await models.Order.findByPk(orderId);
-               if (!order) throw new Error('ORDER NOT FOUND');
-
-               if (manager.shopId !== order.shopId) throw new ForbiddenError('IS NOT ALLOWED');
-
-               const userInformation = await manager.getUserInformation({
-                  attributes: [
-                     [Sequelize.fn('CONCAT', Sequelize.col('lastName'), ' ', 
-                     Sequelize.col('firstName')), 'managerFullName'],
-                  ],
-                  raw: true,
-               });
-
-               await order.update({
-                  managerId: manager.id,
-                  managerFullName: userInformation.managerFullName,
-                  status: ORDER_STATUSES.NEW,
-               });
-
-               return {success: true};
-            }
 
          }
       }

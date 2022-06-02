@@ -9,9 +9,7 @@ export default class Tour {
       return {
 
          Query: {
-
             getTours: () => models.Tour.findAll()},
-
       }
    }
 
@@ -19,23 +17,22 @@ export default class Tour {
    static typeDefs() {
       return gql`
 
-      type Tour {
-         id: Int
-         shopId: Int
-         managerId: Int
-         name: String
-         info: String
-         price: Int
-      }
+         type Tour {
+            id: Int
+            shopId: Int
+            managerId: Int
+            name: String
+            info: String
+            price: Int
+         }
 
-      input BookTourInput {
-         fullName: String!
-         phone: String!
-         date: String!
-         tourId: Int!
-      }
+         input BookTourInput {
+            fullName: String!
+            phone: String!
+            date: String!
+            tourId: Int!
+         }
 
-      
       `
    }
 

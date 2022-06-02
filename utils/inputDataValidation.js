@@ -1,6 +1,5 @@
 import validator from 'validator';
 
-
 export const validateEmail = email => validator.isEmail(email);
 
 export const validateLogin = login => /^[a-zA-Z0-9][a-zA-Z0-9-_]{5,36}$/.test(login);
@@ -14,7 +13,6 @@ export const isImage = mimetype => {
 }
 
 export const checkFilledFields = fields => {
-
    fields.forEach(field => {
       if (!field) {
          throw new Error('NOT ALL FIELDS ARE FILLED');

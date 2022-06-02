@@ -1,5 +1,12 @@
 import { Model } from 'sequelize';
-import { USER_ROLES, USER_STATUSES } from '../config/const.js';
+import { UserInputError } from 'apollo-server-express';
+
+import { USER_ROLES, USER_STATUSES, ERROR_MESSAGES } from '../config/const.js';
+import * as inputDataValidation from '../utils/inputDataValidation.js';
+import fs from 'fs';
+import { finished } from 'stream/promises';
+import path from 'path';
+
 
 export default class User extends Model {
   
@@ -58,5 +65,51 @@ export default class User extends Model {
     this.belongsTo(models.Shop, {foreignKey: 'shopId'});
     this.belongsToMany(models.Photocard, {through: models.FavoritePhotocard, foreignKey: 'userId'});
   }
+
+  static async checkLoginExistence(login) {
+    const existingLogin = await this.findOne({where: {login}});
+    if (existingLogin) throw new Error(ERROR_MESSAGES.LOGIN_ALREADY_EXISTS);
+  }
   
+  static async checkEmailExistence(email) {
+    const existingEmail = await this.findOne({where: {email}});
+    if (existingEmail) throw new Error(ERROR_MESSAGES.EMAIL_ALREADY_EXISTS);
+  }
+
+  static validateLogin(login) {
+    if (!inputDataValidation.validateLogin(login)) throw new UserInputError('Incorrect login');
+  }
+
+  static validateEmail(email) {
+    if (!inputDataValidation.validateEmail(email)) throw new UserInputError('Incorrect email');
+  }
+
+  static validatePassword(password) {
+    if (!inputDataValidation.validatePassword(password)) throw new UserInputError('Incorrect password');
+  }
+
+  static async saveAvatar(file, userId) {
+
+    if (file) {
+      const avatarPath = path.join(__dirname, '../uploads/user/avatars/');
+      
+      const { createReadStream, filename, mimetype, encoding } = await file;
+      
+      inputDataValidation.isImage(mimetype);
+
+      const stream = createReadStream();
+
+      const avatarName = `${userId}.jpg`;
+      const out = fs.createWriteStream(avatarPath + avatarName);
+
+      stream.pipe(out);
+      await finished(out);
+
+      return avatarName;
+    }
+
+    return null;
+
+  }
+
 };

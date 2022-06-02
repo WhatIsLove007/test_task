@@ -8,7 +8,7 @@
     "node": ">=17.4.1"
   },
   "scripts": {
-    "babel": "nodemon --exec npx babel-node ./app.js",
+    "dev": "nodemon --exec npx babel-node ./app.js",
     "build": "npx babel --ignore node_modules ../test_task --out-dir dist --copy-files",
     "db:migrate": "npx sequelize-cli db:migrate",
     "db:seed:all": "npx sequelize-cli db:seed:all",

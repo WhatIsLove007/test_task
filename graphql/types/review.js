@@ -2,16 +2,13 @@ import {gql} from 'apollo-server-express';
 
 import models from '../../models';
 
-
 export default class Review {
 
    static resolver() {
       return {
 
          Query: {
-
             getReviews: async (parent, {}, context) => {
-
                const reviews = await models.Review.findAll();
 
                const url = context.req.protocol + '://' + context.req.get('host');
@@ -22,7 +19,6 @@ export default class Review {
                }
 
                return reviews;
-
             }
 
          },
@@ -31,18 +27,15 @@ export default class Review {
 
    static typeDefs() {
       return gql`
-
-      type Review {
-         tourId: Int
-         userId: Int
-         userFullName: String
-         userAvatarUrl: String
-         assessment: Int
-         text: String
-         createdAt: String
-      }
-
-
+         type Review {
+            tourId: Int
+            userId: Int
+            userFullName: String
+            userAvatarUrl: String
+            assessment: Int
+            text: String
+            createdAt: String
+         }
       `
    }
 

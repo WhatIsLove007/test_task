@@ -12,17 +12,13 @@ export default class Order {
       return {
 
          Query: {
-
             getOrders: async (parent, {input}, context) => {
-
                checkUserRights.checkRole(context, USER_ROLES.MANAGER);
 
                const {
                   limit, offset, dateFrom, dateUntil, manager, shopId,
                   client, priceFrom, priceTo, paid, status, searchKey
-                  
                } = input;
-
 
                const orders = await models.Order.findAll({
                   limit,
@@ -50,11 +46,9 @@ export default class Order {
                });
 
                return orders;
-
             },
 
             getDistinctManagersInOrders: async (parent, {}, context) => {
-
                checkUserRights.checkRole(context, USER_ROLES.MANAGER);
 
                const distinctManagersInOrders = await models.Order.findAll({
@@ -70,7 +64,6 @@ export default class Order {
             },
             
             getDistinctShopsInOrders: async (parent, {}, context) => {
-
                checkUserRights.checkRole(context, USER_ROLES.MANAGER);
 
                const distinctShopsInOrders = await models.Order.findAll({
@@ -93,16 +86,44 @@ export default class Order {
                });
 
                return distinctClientsInOrders.map(client => client.clientFullName);
-               
             },
             
             getTotalOrders: async (parent, {}, context) => {
-
                checkUserRights.checkRole(context, USER_ROLES.MANAGER);
 
                return models.Order.count()
             },
             
+         },
+
+         Mutation: {
+            acceptClientOrder: async (parent, {orderId}, context) => {
+               checkUserRights.checkRole(context, USER_ROLES.MANAGER);
+
+               const manager = context.user;
+
+               const order = await models.Order.findByPk(orderId);
+               if (!order) throw new Error('ORDER NOT FOUND');
+
+               if (manager.shopId !== order.shopId) throw new ForbiddenError('IS NOT ALLOWED');
+
+               const userInformation = await manager.getUserInformation({
+                  attributes: [
+                     [Sequelize.fn('CONCAT', Sequelize.col('lastName'), ' ', 
+                     Sequelize.col('firstName')), 'managerFullName'],
+                  ],
+                  raw: true,
+               });
+
+               await order.update({
+                  managerId: manager.id,
+                  managerFullName: userInformation.managerFullName,
+                  status: ORDER_STATUSES.NEW,
+               });
+
+               return {success: true};
+            }
+
          },
       }
    }
@@ -111,41 +132,41 @@ export default class Order {
    static typeDefs() {
       return gql`
 
-      type Order {
-         id: Int
-         managerId: Int
-         shopId: Int
-         managerFullName: String
-         clientFullName: String
-         clientPhone: String
-         price: Int
-         paid: Boolean
-         tourDate: String
-         status: OrderStatus
-         createdAt: String
-      }
+         type Order {
+            id: Int
+            managerId: Int
+            shopId: Int
+            managerFullName: String
+            clientFullName: String
+            clientPhone: String
+            price: Int
+            paid: Boolean
+            tourDate: String
+            status: OrderStatus
+            createdAt: String
+         }
 
-      enum OrderStatus {
-         ${ORDER_STATUSES.IN_PROCESSING}
-         ${ORDER_STATUSES.NEW}
-         ${ORDER_STATUSES.DELIVERY}
-         ${ORDER_STATUSES.CANCELED}
-      }
+         enum OrderStatus {
+            ${ORDER_STATUSES.IN_PROCESSING}
+            ${ORDER_STATUSES.NEW}
+            ${ORDER_STATUSES.DELIVERY}
+            ${ORDER_STATUSES.CANCELED}
+         }
 
-      input OrderFilterInput {
-         limit: Int!
-         offset: Int!
-         dateFrom: String
-         dateUntil: String
-         manager: String
-         shopId: Int
-         client: String
-         priceFrom: Int
-         priceTo: Int
-         paid: Boolean
-         status: OrderStatus
-         searchKey: String
-      }
+         input OrderFilterInput {
+            limit: Int!
+            offset: Int!
+            dateFrom: String
+            dateUntil: String
+            manager: String
+            shopId: Int
+            client: String
+            priceFrom: Int
+            priceTo: Int
+            paid: Boolean
+            status: OrderStatus
+            searchKey: String
+         }
 
       `
    }

@@ -1,8 +1,6 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv/config';
 
-
-
 const transporter = nodemailer.createTransport({
    host: "smtp.ethereal.email",
    port: 587,
@@ -13,9 +11,7 @@ const transporter = nodemailer.createTransport({
    },
 });
 
-
 export const sendPasswordResetEmail = async (email, url) => {
-
    const mailOptions = await transporter.sendMail({
       from: '"Malevich 👻" <foo@example.com>',
       to: email,

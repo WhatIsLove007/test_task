@@ -15,10 +15,7 @@ import Shop from './types/shop.js';
 import * as userAuthentication from '../utils/userAuthentication.js';
 import { USER_STATUSES } from '../config/const.js';
 
-
-
 export const typeDefs = gql`
-
   ${User.typeDefs()}
   ${UserInformation.typeDefs()}
   ${UserAddress.typeDefs()}
@@ -38,9 +35,7 @@ export const typeDefs = gql`
     success: Boolean!
   }
 
-
   scalar Upload
-
 
   type Query {
     signin(input: UserSigninInput): LoginResponse
@@ -55,7 +50,6 @@ export const typeDefs = gql`
     getReviews: [Review]
   }
 
-
   type Mutation {
     signup(input: UserSignupInput, file: Upload): LoginResponse
     sendPasswordResetEmail(emailOrLogin: String!): SendPasswordResetEmail
@@ -69,7 +63,6 @@ export const typeDefs = gql`
     acceptClientOrder(orderId: Int!): Response
     setDiscountForSubscribers(email: String!): Response
   }
-  
 `;
 
 
@@ -81,15 +74,14 @@ function combineResolvers() {
     Tour.resolver(),
     Review.resolver(),
     Country.resolver(),
+    Photocard.resolver(),
+    UserPreference.resolver(),
   )
 }
 
-
 export const resolvers = combineResolvers();
 
-
 export const context = async context => {
-
   const authorization = context.req.headers.authorization;
   if (!authorization) {
     context.user = null;
@@ -97,7 +89,7 @@ export const context = async context => {
   }
 
   const user = await userAuthentication.authenticateToken(authorization);
-  if (!user || user.status === USER_STATUSES.BANNED) {
+  if (!user) {
     context.user = null;
     return context;
   }

@@ -34,15 +34,6 @@ module.exports = {
    
    AUTHORIZATION_ACCESS_SECRET_KEY: process.env.ACCESS_SECRET_KEY,
    
-   URL_CALLBACKS: {
-      ...(process.env.NODE_ENV === 'development'? {
-         GOOGLE_URL_CALLBACK: 'http://localhost:3000/auth/google/callback',
-         FACEBOOK_URL_CALLBACK: 'http://localhost:3000/auth/facebook/callback',
-         LINKEDIN_URL_CALLBACK: 'http://localhost:3000/auth/linkedin/callback',
-      } : {}),
-   
-   },
-   
    USER_PROFILE_COMPLETENESS: {
       AVATAR: 25,
       PROFILE_HEADER: 25,
@@ -55,5 +46,13 @@ module.exports = {
       ALREADY_REGISTERED_WITHOUT_FACEBOOK: 'EMAIL ALREADY REGISTERED WITHOUT FACEBOOK OAUTH',
       ALREADY_REGISTERED_WITHOUT_LINKEDIN: 'EMAIL ALREADY REGISTERED WITHOUT LINKEDIN OAUTH',
 
-   }
+   },
+
+   TOKEN_LIFETIME: {
+      THREE_DAYS: 259200000,
+   },
+
+   DEFAULT_FILTERING_VALUES: {
+      PHOTOCARDS_LIMIT: 10,
+   },
 }
