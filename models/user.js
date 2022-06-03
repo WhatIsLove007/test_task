@@ -93,7 +93,7 @@ export default class User extends Model {
     if (file) {
       const avatarPath = path.join(__dirname, '../uploads/user/avatars/');
       
-      const { createReadStream, filename, mimetype, encoding } = await file;
+      const { createReadStream, mimetype } = await file;
       
       inputDataValidation.isImage(mimetype);
 
@@ -110,6 +110,11 @@ export default class User extends Model {
 
     return null;
 
+  }
+
+  static deleteAvatar(avatarName) {
+    const avatarPath = path.join(__dirname, `../uploads/user/avatars/${avatarName}`);
+    if (fs.existsSync(avatarPath)) fs.unlinkSync(avatarPath);
   }
 
 };

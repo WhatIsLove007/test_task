@@ -2,7 +2,6 @@ import {gql, UserInputError, ForbiddenError} from 'apollo-server-express';
 import { Sequelize, sequelize } from '../../models/index.js';
 import {GraphQLUpload} from 'graphql-upload';
 import fs from 'fs';
-import { finished } from 'stream/promises';
 import path from 'path';
 
 import models from '../../models';
@@ -59,7 +58,6 @@ export default class User {
                const user = context.user;
 
                const userInformation = await user.getUserInformation();
-               const userPreferences = await user.getUserPreferences();
 
                user.profileCompleted = userInformation.calculateProfileCompleteness();
 
@@ -122,9 +120,8 @@ export default class User {
                await models.User.checkLoginExistence(login);
                await models.User.checkEmailExistence(email);
 
-               const country = await models.Country.findByPk(countryId);
-               if (!country) throw new Error(ERROR_MESSAGES.COUNTRY_NOT_FOUND);
-
+               await models.Country.findCountryById(countryId);
+               
                const transaction = await sequelize.transaction();
 
                try {
@@ -251,8 +248,7 @@ export default class User {
                   throw new UserInputError('INCORRECT DATE')
                }
 
-               const country = await models.Country.findByPk(countryId);
-               if (!country) throw new Error(ERROR_MESSAGES.COUNTRY_NOT_FOUND);
+               await models.Country.findCountryById(countryId);
 
                const userInformation = await context.user.getUserInformation();
                const userAddress = await context.user.getUserAddress();
@@ -283,26 +279,26 @@ export default class User {
                }
             },
 
-            addUserAvatar: async (parent, {file}, context) => {
+            addUserAvatar: async (parent, { file }, context) => {
                checkUserRights.checkUserAuthentication(context);
 
-               const transaction = await sequelize.transaction();
+               if (!file) throw new UserInputError(ERROR_MESSAGES.NO_FILE);
 
                const userInformation = await context.user.getUserInformation();
+               
+               let avatarName;
 
                try {
-                  const avatarName = await models.User.saveAvatar(file, context.user.id);
-
+                  avatarName = await models.User.saveAvatar(file, context.user.id);
+                  
                   await userInformation.update({avatar: avatarName});
-
-                  await transaction.commit();
 
                   const url = context.req.protocol + '://' + context.req.get('host');
 
                   return `${url}/storage/files/user/avatars/${avatarName}`;
 
                } catch (error) {
-                  await transaction.rollback();
+                  models.User.deleteAvatar(avatarName);
                   throw new Error(error);
                }
             },
